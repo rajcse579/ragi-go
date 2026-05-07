@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "firebase-tools": "^15.16.0",
+    "google-auth-library": "^10.6.2",
+    "googleapis": "^171.4.0"
+  }
+}

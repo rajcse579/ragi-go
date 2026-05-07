@@ -1,0 +1,147 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import API_BASE_URL from '../apiConfig';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+
+export default function Orders() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { cartCount } = useCart();
+  const showSuccess = location.state?.success;
+
+  useEffect(() => {
+    const userPhone = localStorage.getItem('userPhone') || 'Unknown';
+    axios.get(`${API_BASE_URL}/orders/user/${userPhone}`)
+      .then(res => {
+        // Sort by timestamp desc to show latest first
+        const sorted = (res.data || []).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        setOrders(sorted);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error fetching orders", err);
+        setLoading(false);
+      });
+  }, []);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Pending': return '#ffb700';
+      case 'Accepted': return '#60b246';
+      case 'Out for Delivery': return '#FC8019';
+      case 'Delivered': return '#60b246';
+      case 'Cancelled': return '#ff4d4d';
+      default: return '#93959f';
+    }
+  };
+
+  return (
+    <div className="page-container" style={{ background: '#f8f8f8' }}>
+      <div className="header-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <i className='bx bx-left-arrow-alt' style={{ fontSize: '24px', cursor: 'pointer' }} onClick={() => navigate('/menu')}></i>
+          <h2 style={{ fontSize: '18px', margin: 0 }}>My Orders</h2>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 20px 20px', flex: 1, width: '100%' }}>
+        {showSuccess && (
+          <div className="fade-in-up" style={{
+            background: '#fff',
+            padding: '24px',
+            borderRadius: '16px',
+            marginBottom: '24px',
+            textAlign: 'center',
+            boxShadow: 'var(--shadow-md)',
+            border: '1px solid #e9e9eb'
+          }}>
+            <div className="success-icon" style={{ width: '60px', height: '60px', background: 'var(--primary-light)', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 16px' }}>
+              <i className='bx bxs-check-circle' style={{ fontSize: '32px', color: 'var(--primary)' }}></i>
+            </div>
+            <h3 style={{ fontSize: '20px', marginBottom: '4px' }}>Order Placed Successfully!</h3>
+            <p style={{ margin: 0, color: 'var(--text-light)', fontSize: '14px' }}>Your healthy meal is being prepared with care.</p>
+          </div>
+        )}
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <p style={{ color: 'var(--text-light)' }}>Loading your history...</p>
+          </div>
+        ) : orders.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '60px', textAlign: 'center' }}>
+            <div style={{ width: '120px', height: '120px', background: '#fff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '24px', boxShadow: 'var(--shadow-sm)' }}>
+              <i className='bx bx-receipt' style={{ fontSize: '50px', color: '#e9e9eb' }}></i>
+            </div>
+            <h3 style={{ fontSize: '18px', color: 'var(--text-main)', marginBottom: '8px' }}>No orders yet</h3>
+            <p style={{ color: 'var(--text-light)', maxWidth: '200px' }}>When you place an order, it will appear here.</p>
+          </div>
+        ) : (
+          orders.map((order, index) => (
+            <div key={order.id} className="fade-in-up" style={{
+              background: '#fff',
+              padding: '20px',
+              borderRadius: '12px',
+              marginBottom: '16px',
+              boxShadow: 'var(--shadow-sm)',
+              border: '1px solid #e9e9eb',
+              animationDelay: `${index * 0.1}s`
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #f1f1f6' }}>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 800 }}>Raagi GO</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '11px', color: getStatusColor(order.status), fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>{order.status}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>ID #{order.id}</div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                {order.items.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    <span>{item.quantity} x {item.name}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #f1f1f6', paddingTop: '12px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-light)' }}>Total Paid: <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>₹{order.total}</span></span>
+                <button
+                  style={{ background: 'none', border: '1px solid var(--primary)', color: 'var(--primary)', padding: '6px 12px', borderRadius: '4px', fontSize: '11px', fontWeight: 800 }}
+                  onClick={() => navigate('/menu')}
+                >
+                  REORDER
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="bottom-nav">
+        <div className="nav-item" onClick={() => navigate('/menu')}>
+          <i className='bx bx-home-circle'></i>
+          <span>Home</span>
+        </div>
+        <div className="nav-item" onClick={() => navigate('/cart')}>
+          <i className='bx bx-shopping-bag'></i>
+          <span>Cart</span>
+          {cartCount > 0 && <div className="badge">{cartCount}</div>}
+        </div>
+        <div className="nav-item active" onClick={() => navigate('/orders')}>
+          <i className='bx bxs-receipt'></i>
+          <span>Orders</span>
+        </div>
+        <div className="nav-item" onClick={() => navigate('/account')}>
+          <i className='bx bx-user-circle'></i>
+          <span>Account</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+

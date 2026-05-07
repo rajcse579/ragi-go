@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
+build/
+dist/
+target/
+*.zip
+*.apk
+
+# Misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Service Accounts (CRITICAL)
+service-account*.json
+ragi-go-firebase-adminsdk-*.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# SDKs
+google-cloud-sdk/
+jdk*/
+
+# Deployment Artifacts
+source.zip
+cloudbuild.yaml
+*.jks
+*.aab
+*.apk
+Raagi_GO_*
