@@ -38,6 +38,8 @@ export default function Login() {
       localStorage.setItem('userName', user.name);
       localStorage.setItem('userPhone', user.phone);
       localStorage.setItem('userRole', user.role);
+      if (user.address) localStorage.setItem('userAddress', user.address);
+      if (user.gpsLocation) localStorage.setItem('userGpsLocation', user.gpsLocation);
       
       if (user.role === 'ADMIN') {
         navigate('/admin');

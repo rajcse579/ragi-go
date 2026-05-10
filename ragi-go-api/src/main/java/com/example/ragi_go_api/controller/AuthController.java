@@ -45,9 +45,45 @@ public class AuthController {
             response.put("name", user.getName());
             response.put("phone", user.getPhone());
             response.put("role", user.getRole());
+            response.put("address", user.getAddress());
+            response.put("gpsLocation", user.getGpsLocation());
             return ResponseEntity.ok(response);
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(@RequestBody User user) {
+        if (user.getEmail() == null || user.getEmail().isEmpty()) {
+            return ResponseEntity.badRequest().body("Email is required");
+        }
+        User existingUser = userRepo.findByEmail(user.getEmail());
+        if (existingUser == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        existingUser.setName(user.getName());
+        existingUser.setPhone(user.getPhone());
+        if (user.getAddress() != null) {
+            existingUser.setAddress(user.getAddress());
+        }
+        if (user.getGpsLocation() != null) {
+            existingUser.setGpsLocation(user.getGpsLocation());
+        }
+        
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            existingUser.setPassword(user.getPassword());
+        }
+        
+        User savedUser = userRepo.save(existingUser);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("email", savedUser.getEmail());
+        response.put("name", savedUser.getName());
+        response.put("phone", savedUser.getPhone());
+        response.put("role", savedUser.getRole());
+        response.put("address", savedUser.getAddress());
+        response.put("gpsLocation", savedUser.getGpsLocation());
+        return ResponseEntity.ok(response);
     }
 }

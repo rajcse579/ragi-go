@@ -46,6 +46,23 @@ public class UserRepository {
         return null;
     }
 
+    public List<User> findByRole(String role) {
+        List<User> users = new java.util.ArrayList<>();
+        try {
+            ApiFuture<QuerySnapshot> future = firestore.collection(COLLECTION_NAME)
+                    .whereEqualTo("role", role)
+                    .get();
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+            for (QueryDocumentSnapshot document : documents) {
+                users.add(document.toObject(User.class));
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            System.err.println("Error finding users by role in Firestore: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return users;
+    }
+
     public boolean existsById(String email) {
         try {
             DocumentSnapshot document = firestore.collection(COLLECTION_NAME).document(email).get().get();

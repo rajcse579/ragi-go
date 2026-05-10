@@ -61,6 +61,31 @@ public class AppOrderRepository {
         return orders;
     }
 
+    public List<AppOrder> findByAssignedToOrderByTimestampDesc(String phone) {
+        List<AppOrder> orders = new ArrayList<>();
+        try {
+            ApiFuture<QuerySnapshot> future = firestore.collection(COLLECTION_NAME)
+                    .whereEqualTo("assignedTo", phone)
+                    .limit(50)
+                    .get();
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+            for (QueryDocumentSnapshot document : documents) {
+                AppOrder order = document.toObject(AppOrder.class);
+                order.setId(document.getId());
+                orders.add(order);
+            }
+            // Sort in memory to avoid index requirement
+            orders.sort((a, b) -> {
+                Long t1 = a.getTimestamp() != null ? a.getTimestamp() : 0L;
+                Long t2 = b.getTimestamp() != null ? b.getTimestamp() : 0L;
+                return t2.compareTo(t1);
+            });
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("Error fetching orders for assignedTo {}: {}", phone, e.getMessage(), e);
+        }
+        return orders;
+    }
+
     public AppOrder save(AppOrder order) {
         CollectionReference orders = firestore.collection(COLLECTION_NAME);
         if (order.getTimestamp() == null) {

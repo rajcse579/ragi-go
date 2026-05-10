@@ -3,6 +3,7 @@ import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useNotifications } from '../context/NotificationContext';
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -10,6 +11,7 @@ export default function Orders() {
   const navigate = useNavigate();
   const location = useLocation();
   const { cartCount } = useCart();
+  const { unreadCount } = useNotifications();
   const showSuccess = location.state?.success;
 
   useEffect(() => {
@@ -64,10 +66,34 @@ export default function Orders() {
 
   return (
     <div className="page-container" style={{ background: '#f8f8f8' }}>
-      <div className="header-bar">
+      <div className="header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <i className='bx bx-left-arrow-alt' style={{ fontSize: '24px', cursor: 'pointer' }} onClick={() => navigate('/menu')}></i>
           <h2 style={{ fontSize: '18px', margin: 0 }}>My Orders</h2>
+        </div>
+
+        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigate('/notifications')}>
+          <i className='bx bx-bell' style={{ fontSize: '24px', color: 'var(--text-main)' }}></i>
+          {unreadCount > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-2px',
+              background: 'var(--primary)',
+              color: '#fff',
+              fontSize: '10px',
+              fontWeight: 800,
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid #fff'
+            }}>
+              {unreadCount}
+            </div>
+          )}
         </div>
       </div>
 

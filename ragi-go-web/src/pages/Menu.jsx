@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
 import { useCart } from '../context/CartContext';
+import { useNotifications } from '../context/NotificationContext';
 import ProgressiveImage from '../components/ProgressiveImage';
 import '../Sprite.css';
 
@@ -10,6 +11,7 @@ export default function Menu() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const { addToCart, cartCount } = useCart();
+  const { unreadCount } = useNotifications();
   const [cartAnimation, setCartAnimation] = useState(false);
   const [logoTaps, setLogoTaps] = useState(0);
   const navigate = useNavigate();
@@ -19,11 +21,16 @@ export default function Menu() {
   const handleLogoTap = () => {
     const newTaps = logoTaps + 1;
     setLogoTaps(newTaps);
-    const adminNumbers = ['7989800390', '8186903873'];
-    const userPhone = localStorage.getItem('userPhone');
-    if (newTaps >= 2 && adminNumbers.includes(userPhone)) {
-      setLogoTaps(0);
-      navigate('/admin');
+    const userRole = localStorage.getItem('userRole');
+    
+    if (newTaps >= 2) {
+      if (userRole === 'ADMIN') {
+        setLogoTaps(0);
+        navigate('/admin');
+      } else if (userRole === 'DELIVERY') {
+        setLogoTaps(0);
+        navigate('/delivery');
+      }
     }
   };
 
@@ -118,6 +125,30 @@ export default function Menu() {
         >
           Raagi GO
         </h2>
+        
+        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigate('/notifications')}>
+          <i className='bx bx-bell' style={{ fontSize: '24px', color: 'var(--text-main)' }}></i>
+          {unreadCount > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-2px',
+              background: 'var(--primary)',
+              color: '#fff',
+              fontSize: '10px',
+              fontWeight: 800,
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid #fff'
+            }}>
+              {unreadCount}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Hero / Promo Section */}
@@ -130,7 +161,7 @@ export default function Menu() {
 
       <div className="location-service-banner">
         <i className='bx bxs-map-pin'></i>
-        <p>Now serving only in <span>Srikakulam City</span></p>
+        <p>Now serving exclusively in <span>Amadalavalasa</span><br/><span style={{ fontSize: '11px', color: 'var(--text-light)', fontWeight: 600 }}>Operating Hours: 7:00 AM - 9:00 AM</span></p>
       </div>
 
       <div className="section-title">Popular Items</div>

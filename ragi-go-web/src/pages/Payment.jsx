@@ -10,15 +10,19 @@ export default function Payment() {
   const location = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [orderPlaced, setOrderPlaced] = useState(false);
 
   const orderInfo = location.state || {};
+
+  const deliveryFee = cartTotal > 99 ? 0 : 10;
+  const toPay = cartTotal + deliveryFee;
 
   const placeOrder = () => {
     setLoading(true);
 
     const orderData = {
       ...orderInfo,
-      total: cartTotal + 10,
+      total: toPay,
       items: cart.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }))
     };
 
@@ -29,6 +33,28 @@ export default function Payment() {
         localStorage.setItem('savedPhone', orderInfo.phone);
         localStorage.setItem('savedAddress', orderInfo.address);
         
+        // Sync with user profile
+        const userEmail = localStorage.getItem('userEmail');
+        if (userEmail) {
+          axios.put(`${API_BASE_URL}/auth/profile`, {
+            email: userEmail,
+            name: orderInfo.name,
+            phone: orderInfo.phone,
+            address: orderInfo.address,
+            gpsLocation: orderInfo.gpsLocation
+          }).then((res) => {
+            localStorage.setItem('userName', res.data.name);
+            localStorage.setItem('userPhone', res.data.phone);
+            if (res.data.address) {
+              localStorage.setItem('userAddress', res.data.address);
+            }
+            if (res.data.gpsLocation) {
+              localStorage.setItem('userGpsLocation', res.data.gpsLocation);
+            }
+          }).catch(console.error);
+        }
+
+        setOrderPlaced(true);
         setLoading(false);
         clearCart();
         hapticSuccess();
@@ -40,6 +66,10 @@ export default function Payment() {
         setLoading(false);
       });
   };
+
+  if (!orderPlaced && cartTotal === 0) {
+    return <Navigate to="/cart" />;
+  }
 
   if (!orderInfo.name) {
     return <Navigate to="/checkout" />;
@@ -82,11 +112,11 @@ export default function Payment() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '14px', color: 'var(--text-secondary)' }}>
               <span>Delivery Fee</span>
-              <span style={{ fontWeight: 600 }}>₹10</span>
+              <span style={{ fontWeight: 600 }}>{deliveryFee === 0 ? <span style={{color: 'var(--primary)'}}>FREE</span> : `₹${deliveryFee}`}</span>
             </div>
             <div style={{ borderTop: '1px dashed #e9e9eb', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '18px', color: 'var(--text-main)' }}>
               <span>Grand Total</span>
-              <span>₹{cartTotal + 10}</span>
+              <span>₹{toPay}</span>
             </div>
           </div>
         </div>
@@ -99,7 +129,7 @@ export default function Payment() {
           disabled={loading}
           style={{ width: '100%' }}
         >
-          {loading ? 'PLACING ORDER...' : `PLACE ORDER - ₹${cartTotal + 10}`}
+          {loading ? 'PLACING ORDER...' : `PLACE ORDER - ₹${toPay}`}
         </button>
       </div>
     </div>

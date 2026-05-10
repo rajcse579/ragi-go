@@ -17,4 +17,6 @@ public class AppOrder {
     private Double total;
     private String status; // Pending, Accepted, Out for Delivery, Delivered
     private Long timestamp; // Epoch milliseconds
+    private String gpsLocation; // Latitude,Longitude
+    private String assignedTo; // Phone number of delivery guy
 }

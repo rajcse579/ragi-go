@@ -13,9 +13,15 @@ export default function Admin() {
   const [newOrderAlert, setNewOrderAlert] = useState(false);
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' or 'menu'
   const [menuItems, setMenuItems] = useState([]);
+  const [deliveryGuys, setDeliveryGuys] = useState([]);
   const [editingItem, setEditingItem] = useState(null); // null for new, {id, name, ...} for edit
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', price: '', imageUrl: '', available: true });
+  const [promoForm, setPromoForm] = useState({ title: '', body: '' });
+  const [isSendingPromo, setIsSendingPromo] = useState(false);
+  const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
+  const [promoSuccess, setPromoSuccess] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
   const navigate = useNavigate();
 
   const [isShopOpen, setIsShopOpen] = useState(true);
@@ -27,6 +33,7 @@ export default function Admin() {
     fetchShopStatus();
     fetchOrders();
     fetchMenu();
+    fetchDeliveryGuys();
     // Auto-refresh every 5 seconds for real-time feel
     const interval = setInterval(() => {
       if (activeTab === 'orders') fetchOrders();
@@ -85,6 +92,12 @@ export default function Admin() {
       .catch(err => console.error("Error fetching menu", err));
   };
 
+  const fetchDeliveryGuys = () => {
+    axios.get(`${API_BASE_URL}/delivery-guys`)
+      .then(res => setDeliveryGuys(res.data || []))
+      .catch(err => console.error("Error fetching delivery guys", err));
+  };
+
   const handleMenuSubmit = (e) => {
     e.preventDefault();
     const action = editingItem ? axios.put(`${API_BASE_URL}/menu/${editingItem.id}`, formData) : axios.post(`${API_BASE_URL}/menu`, formData);
@@ -98,8 +111,15 @@ export default function Admin() {
   };
 
   const deleteMenuItem = (id) => {
-    if (window.confirm('Delete this item?')) {
-      axios.delete(`${API_BASE_URL}/menu/${id}`).then(fetchMenu);
+    setItemToDelete(id);
+  };
+
+  const confirmDeleteMenuItem = () => {
+    if (itemToDelete) {
+      axios.delete(`${API_BASE_URL}/menu/${itemToDelete}`).then(() => {
+        fetchMenu();
+        setItemToDelete(null);
+      });
     }
   };
 
@@ -107,6 +127,40 @@ export default function Admin() {
     setEditingItem(item);
     setFormData({ name: item.name, price: item.price, imageUrl: item.imageUrl, available: item.available });
     setShowMenuModal(true);
+  };
+
+  const handleSendPromo = (e) => {
+    e.preventDefault();
+    if (!promoForm.title || !promoForm.body) {
+      alert("Title and Message are required!");
+      return;
+    }
+    setShowBroadcastConfirm(true);
+  };
+
+  const confirmSendPromo = async () => {
+    setShowBroadcastConfirm(false);
+    setIsSendingPromo(true);
+    try {
+      const { collection, addDoc } = await import('firebase/firestore');
+      const { db } = await import('../firebase');
+      
+      await addDoc(collection(db, 'broadcasts'), {
+        title: promoForm.title,
+        body: promoForm.body,
+        timestamp: Date.now(),
+        type: 'promotional'
+      });
+      
+      setPromoForm({ title: '', body: '' });
+      setPromoSuccess(true);
+      setTimeout(() => setPromoSuccess(false), 4000);
+    } catch (err) {
+      console.error("Error sending broadcast", err);
+      alert("Failed to send broadcast");
+    } finally {
+      setIsSendingPromo(false);
+    }
   };
 
   const updateStatus = (orderId, targetStatus) => {
@@ -117,6 +171,17 @@ export default function Admin() {
       .catch(err => {
         console.error("Status update failed", err);
         alert('Failed to update status');
+      });
+  };
+
+  const assignOrder = (orderId, deliveryGuyPhone) => {
+    axios.put(`${API_BASE_URL}/orders/${orderId}/assign`, { assignedTo: deliveryGuyPhone })
+      .then(() => {
+        fetchOrders(); // Refresh list
+      })
+      .catch(err => {
+        console.error("Assign failed", err);
+        alert('Failed to assign order');
       });
   };
 
@@ -201,6 +266,24 @@ export default function Admin() {
           }}>
           MENU
         </div>
+        <div
+          onClick={() => setActiveTab('notifications')}
+          style={{
+            flex: 1, textAlign: 'center', padding: '15px', fontSize: '13px', fontWeight: 800, cursor: 'pointer',
+            color: activeTab === 'notifications' ? 'var(--primary)' : 'var(--text-light)',
+            borderBottom: activeTab === 'notifications' ? '2px solid var(--primary)' : 'none'
+          }}>
+          NOTIFY
+        </div>
+        <div
+          onClick={() => setActiveTab('delivery')}
+          style={{
+            flex: 1, textAlign: 'center', padding: '15px', fontSize: '13px', fontWeight: 800, cursor: 'pointer',
+            color: activeTab === 'delivery' ? 'var(--primary)' : 'var(--text-light)',
+            borderBottom: activeTab === 'delivery' ? '2px solid var(--primary)' : 'none'
+          }}>
+          DELIVERY
+        </div>
       </div>
 
       <div style={{ padding: '20px', flex: 1, overflowY: 'auto' }}>
@@ -233,6 +316,8 @@ export default function Admin() {
               </div>
             </div>
 
+            {/* Delivery Stats removed from here */}
+
             {loading ? (
               <div style={{ textAlign: 'center', padding: '40px' }}><p>Loading orders...</p></div>
             ) : orders.length === 0 ? (
@@ -255,9 +340,51 @@ export default function Admin() {
                       <div key={idx} style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{item.quantity} x {item.name}</div>
                     ))}
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-light)', marginBottom: '16px', padding: '10px', background: '#f8f8f8', borderRadius: '8px' }}>
-                    <i className='bx bx-map' style={{ marginRight: '5px' }}></i>{order.address}
+                  <div 
+                    onClick={() => {
+                      const query = order.gpsLocation || order.address;
+                      if (query) {
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
+                      }
+                    }}
+                    style={{ 
+                      fontSize: '12px', color: 'var(--text-light)', marginBottom: '16px', padding: '10px', 
+                      background: '#f8f8f8', borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <i className='bx bx-map' style={{ marginRight: '5px', color: 'var(--primary)' }}></i>
+                        {order.address}
+                      </div>
+                      {order.gpsLocation && (
+                        <div style={{ fontSize: '11px', color: '#2e7d32', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}>
+                          <i className='bx bx-target-lock' style={{ fontSize: '14px' }}></i> GPS Location Linked
+                        </div>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: '10px', flexShrink: 0 }}>
+                      <i className='bx bx-navigation' style={{ fontSize: '14px' }}></i> NAVIGATE
+                    </span>
                   </div>
+                  
+                  {/* Assign Delivery Guy */}
+                  <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)' }}>ASSIGN TO:</label>
+                    <select
+                      value={order.assignedTo || ''}
+                      onChange={(e) => assignOrder(order.id, e.target.value)}
+                      style={{ padding: '8px', borderRadius: '8px', border: '1px solid #e9e9eb', fontSize: '12px', flex: 1, outline: 'none', background: '#f8f8f8' }}
+                    >
+                      <option value="">Unassigned</option>
+                      {deliveryGuys.map(guy => (
+                        <option key={guy.phone} value={guy.phone}>{guy.name} ({guy.phone})</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '5px' }}>
                     {STATUS_OPTIONS.map(status => (
                       <button
@@ -275,7 +402,7 @@ export default function Admin() {
               ))
             )}
           </>
-        ) : (
+        ) : activeTab === 'menu' ? (
           <div className="menu-management">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, fontSize: '16px' }}>Manage Menu</h3>
@@ -314,8 +441,118 @@ export default function Admin() {
               </div>
             ))}
           </div>
-        )}
+        ) : activeTab === 'notifications' ? (
+          <div className="notifications-management">
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '16px' }}>Send App Notification</h3>
+            
+            {promoSuccess && (
+              <div className="fade-in-up" style={{ background: '#e8f5e9', color: '#2e7d32', padding: '12px 16px', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 800 }}>
+                <i className='bx bx-check-circle' style={{ fontSize: '20px' }}></i>
+                Broadcast sent successfully!
+              </div>
+            )}
+
+            <div style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: 'var(--shadow-sm)', border: '1px solid #e9e9eb' }}>
+              <form onSubmit={handleSendPromo}>
+                <div className="input-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', marginBottom: '8px', display: 'block' }}>NOTIFICATION TITLE</label>
+                  <input
+                    type="text" value={promoForm.title} required
+                    placeholder="e.g., Weekend Special Offer! 🎉"
+                    onChange={e => setPromoForm({ ...promoForm, title: e.target.value })}
+                    className="input-field" style={{ width: '100%', fontSize: '14px' }}
+                  />
+                </div>
+                <div className="input-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', marginBottom: '8px', display: 'block' }}>MESSAGE BODY</label>
+                  <textarea
+                    value={promoForm.body} required rows="4"
+                    placeholder="e.g., Get 20% off on all healthy bowls today. Order now!"
+                    onChange={e => setPromoForm({ ...promoForm, body: e.target.value })}
+                    className="input-field" style={{ width: '100%', resize: 'none', fontSize: '14px' }}
+                  />
+                </div>
+                <button 
+                  type="submit" 
+                  disabled={isSendingPromo}
+                  style={{ width: '100%', background: 'var(--primary)', color: '#fff', border: 'none', padding: '16px', borderRadius: '12px', fontWeight: 800, fontSize: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', opacity: isSendingPromo ? 0.7 : 1 }}
+                >
+                  <i className='bx bxs-megaphone' style={{ fontSize: '18px' }}></i>
+                  {isSendingPromo ? 'SENDING BROADCAST...' : 'BROADCAST TO ALL USERS'}
+                </button>
+              </form>
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-light)', textAlign: 'center', marginTop: '16px', lineHeight: 1.5 }}>
+              <i className='bx bx-info-circle'></i> This will trigger a native push notification to all users who have the app installed.
+            </p>
+          </div>
+        ) : activeTab === 'delivery' ? (
+          <div className="delivery-management">
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '16px' }}>Delivery Performance</h3>
+            
+            <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', border: '1px solid #e9e9eb' }}>
+              {deliveryGuys.length === 0 ? (
+                <div style={{ fontSize: '12px', color: 'var(--text-light)' }}>No delivery guys registered</div>
+              ) : (
+                deliveryGuys.map(guy => {
+                  const deliveredCount = orders.filter(o => o.assignedTo === guy.phone && o.status === 'Delivered').length;
+                  const activeCount = orders.filter(o => o.assignedTo === guy.phone && (o.status === 'Accepted' || o.status === 'Out for Delivery')).length;
+                  return (
+                    <div key={guy.phone} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '12px 0', borderBottom: '1px solid #f1f1f6' }}>
+                      <div>
+                        <div style={{ fontWeight: 800 }}>{guy.name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>{guy.phone}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 800, color: '#60b246' }}>{deliveredCount} Done</div>
+                        <div style={{ fontSize: '11px', color: 'var(--primary)' }}>{activeCount} Active</div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
+
+      {/* Delete Item Confirm Modal */}
+      {itemToDelete && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="fade-in-up" style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '350px', padding: '24px', textAlign: 'center' }}>
+            <div style={{ width: '60px', height: '60px', background: '#fff5f5', color: '#ff4d4d', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <i className='bx bx-trash' style={{ fontSize: '32px' }}></i>
+            </div>
+            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '18px' }}>Delete Item?</h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: 1.5 }}>
+              Are you sure you want to permanently delete this item from the menu?
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setItemToDelete(null)} style={{ flex: 1, background: '#f1f1f6', color: 'var(--text-main)', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}>CANCEL</button>
+              <button onClick={confirmDeleteMenuItem} style={{ flex: 1, background: '#ff4d4d', color: '#fff', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}>DELETE</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Broadcast Confirm Modal */}
+      {showBroadcastConfirm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="fade-in-up" style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '350px', padding: '24px', textAlign: 'center' }}>
+            <div style={{ width: '60px', height: '60px', background: '#fff3e0', color: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <i className='bx bxs-megaphone' style={{ fontSize: '32px' }}></i>
+            </div>
+            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '18px' }}>Send Broadcast?</h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: 1.5 }}>
+              This will immediately send a push notification to <b>all users</b> who have the app installed.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setShowBroadcastConfirm(false)} style={{ flex: 1, background: '#f1f1f6', color: 'var(--text-main)', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}>CANCEL</button>
+              <button onClick={confirmSendPromo} style={{ flex: 1, background: 'var(--primary)', color: '#fff', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}>YES, SEND</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Menu Modal */}
       {showMenuModal && (

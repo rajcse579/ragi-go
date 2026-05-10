@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
+import { NotificationProvider } from './context/NotificationContext';
+import OrderNotification from './components/OrderNotification';
 import './App.css';
 
 import { Suspense, lazy } from 'react';
@@ -11,8 +13,10 @@ const Menu = lazy(() => import('./pages/Menu'));
 const Cart = lazy(() => import('./pages/Cart'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const Admin = lazy(() => import('./pages/Admin'));
+const DeliveryDashboard = lazy(() => import('./pages/DeliveryDashboard'));
 const Orders = lazy(() => import('./pages/Orders'));
 const Account = lazy(() => import('./pages/Account'));
+const Notifications = lazy(() => import('./pages/Notifications'));
 const Signup = lazy(() => import('./pages/Signup'));
 const Payment = lazy(() => import('./pages/Payment'));
 
@@ -41,7 +45,9 @@ function App() {
           You are currently offline. Viewing cached data.
         </div>
       )}
-      <CartProvider>
+      <NotificationProvider>
+        <OrderNotification />
+        <CartProvider>
         <BrowserRouter>
           <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--primary)' }}>Loading...</div>}>
             <Routes>
@@ -66,12 +72,15 @@ function App() {
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/payment" element={<Payment />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/delivery" element={<DeliveryDashboard />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/account" element={<Account />} />
+              <Route path="/notifications" element={<Notifications />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
       </CartProvider>
+      </NotificationProvider>
     </div>
   );
 }

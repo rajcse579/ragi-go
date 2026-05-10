@@ -1,11 +1,76 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import API_BASE_URL from '../apiConfig';
+import { useNotifications } from '../context/NotificationContext';
 
 export default function Account() {
   const navigate = useNavigate();
-  const userPhone = localStorage.getItem('userPhone') || '';
-  const userName = localStorage.getItem('userName') || 'Guest User';
+  const { unreadCount } = useNotifications();
+  const [userPhone, setUserPhone] = useState(localStorage.getItem('userPhone') || '');
+  const [userName, setUserName] = useState(localStorage.getItem('userName') || 'Guest User');
+  const [userAddress, setUserAddress] = useState(localStorage.getItem('userAddress') || '');
+  const [userGpsLocation, setUserGpsLocation] = useState(localStorage.getItem('userGpsLocation') || '');
   const userEmail = localStorage.getItem('userEmail') || '';
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [editData, setEditData] = useState({
+    name: userName,
+    phone: userPhone,
+    address: userAddress,
+    gpsLocation: userGpsLocation,
+    password: ''
+  });
+
+  const handleEditChange = (e) => {
+    setEditData({ ...editData, [e.target.name]: e.target.value });
+  };
+
+  const saveProfile = async () => {
+    if (!editData.name || !editData.phone) {
+      alert("Name and Phone are required.");
+      return;
+    }
+    setLoading(true);
+
+    try {
+      const payload = {
+        email: userEmail,
+        name: editData.name,
+        phone: editData.phone,
+        address: editData.address,
+        password: editData.password
+      };
+      if (editData.gpsLocation) {
+        payload.gpsLocation = editData.gpsLocation;
+      }
+
+      const response = await axios.put(`${API_BASE_URL}/auth/profile`, payload);
+      
+      const updatedUser = response.data;
+      localStorage.setItem('userName', updatedUser.name);
+      localStorage.setItem('userPhone', updatedUser.phone);
+      if (updatedUser.address) {
+        localStorage.setItem('userAddress', updatedUser.address);
+      }
+      if (updatedUser.gpsLocation) {
+        localStorage.setItem('userGpsLocation', updatedUser.gpsLocation);
+      }
+      
+      setUserName(updatedUser.name);
+      setUserPhone(updatedUser.phone);
+      setUserAddress(updatedUser.address || '');
+      setUserGpsLocation(updatedUser.gpsLocation || '');
+      setIsEditing(false);
+      setEditData({ ...editData, password: '' });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update profile.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   return (
@@ -15,14 +80,47 @@ export default function Account() {
         .account-scroll-container { ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      <div className="header-bar" style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid #f1f1f6' }}>
+      <div className="header-bar" style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid #f1f1f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 800, color: 'var(--text-main)' }}>Account</h2>
+
+        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigate('/notifications')}>
+          <i className='bx bx-bell' style={{ fontSize: '24px', color: 'var(--text-main)' }}></i>
+          {unreadCount > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '-2px',
+              right: '-2px',
+              background: 'var(--primary)',
+              color: '#fff',
+              fontSize: '10px',
+              fontWeight: 800,
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid #fff'
+            }}>
+              {unreadCount}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="account-scroll-container" style={{ padding: '10px 20px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
         {/* Profile Info */}
-        <div style={{ textAlign: 'center', marginBottom: '16px', marginTop: '0px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '16px', marginTop: '0px', position: 'relative' }}>
+          {!isEditing && (
+            <button 
+              onClick={() => setIsEditing(true)}
+              style={{ position: 'absolute', top: 0, right: 0, background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
+            >
+              <i className='bx bxs-edit' ></i> EDIT
+            </button>
+          )}
+
           <div style={{
             width: '64px', height: '64px', background: '#fff',
             borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -37,8 +135,72 @@ export default function Account() {
               <i className='bx bxs-user' style={{ fontSize: '32px', color: '#93959f' }}></i>
             </div>
           </div>
-          <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 2px 0' }}>{userName}</h3>
-          <p style={{ fontSize: '12px', color: 'var(--text-light)', margin: 0 }}>{userEmail || userPhone}</p>
+          
+          {!isEditing ? (
+            <>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 2px 0' }}>{userName}</h3>
+              <p style={{ fontSize: '12px', color: 'var(--text-light)', margin: 0 }}>{userEmail || userPhone}</p>
+            </>
+          ) : (
+            <div style={{ background: '#fff', padding: '16px', borderRadius: '16px', border: '1px solid #f1f1f6', marginTop: '16px', textAlign: 'left', boxShadow: 'var(--shadow-sm)' }}>
+              <h4 style={{ marginBottom: '16px', fontSize: '15px', fontWeight: 800 }}>Edit Profile</h4>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#93959f', marginBottom: '6px' }}>FULL NAME</label>
+                <input type="text" name="name" value={editData.name} onChange={handleEditChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e9e9eb', outline: 'none', fontFamily: 'inherit', fontSize: '14px' }} />
+              </div>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#93959f', marginBottom: '6px' }}>PHONE NUMBER</label>
+                <input type="tel" name="phone" value={editData.phone} onChange={handleEditChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e9e9eb', outline: 'none', fontFamily: 'inherit', fontSize: '14px' }} />
+              </div>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', fontWeight: 800, color: '#93959f', marginBottom: '6px' }}>
+                  <span>COMPLETE ADDRESS</span>
+                  {editData.gpsLocation && <span style={{ color: '#2e7d32', fontWeight: 600 }}><i className='bx bx-check-circle'></i> Location Saved</span>}
+                </label>
+                <textarea name="address" value={editData.address || ''} onChange={handleEditChange} rows="3" placeholder="e.g. Flat No. 101, Amaravathi Rd, Guntur" style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e9e9eb', outline: 'none', fontFamily: 'inherit', fontSize: '14px', resize: 'none' }}></textarea>
+                
+                <button 
+                  type="button"
+                  onClick={() => {
+                    if (navigator.geolocation) {
+                      setLoading(true);
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                          setEditData({...editData, gpsLocation: `${pos.coords.latitude},${pos.coords.longitude}`});
+                          setLoading(false);
+                        },
+                        (err) => {
+                          alert("Could not automatically detect your location.");
+                          setLoading(false);
+                        }
+                      );
+                    } else {
+                      alert("Location services are not supported by your browser");
+                    }
+                  }}
+                  style={{ marginTop: '10px', width: '100%', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: editData.gpsLocation ? '#e8f5e9' : '#f1f1f6', color: editData.gpsLocation ? '#2e7d32' : 'var(--text-main)', border: editData.gpsLocation ? '1px solid #c8e6c9' : '1px solid #e9e9eb', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  <i className='bx bx-current-location' style={{ fontSize: '16px' }}></i> 
+                  {editData.gpsLocation ? 'Update Delivery Location' : 'Use Current Location'}
+                </button>
+              </div>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#93959f', marginBottom: '6px' }}>NEW PASSWORD <span style={{fontWeight: 400}}>(Optional)</span></label>
+                <input type="password" name="password" placeholder="••••••••" value={editData.password} onChange={handleEditChange} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e9e9eb', outline: 'none', fontFamily: 'inherit', fontSize: '14px' }} />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => setIsEditing(false)} style={{ flex: 1, padding: '12px', background: '#f1f1f6', color: 'var(--text-main)', borderRadius: '10px', fontWeight: 800, fontSize: '13px' }}>CANCEL</button>
+                <button onClick={saveProfile} disabled={loading} style={{ flex: 1, padding: '12px', background: 'var(--primary)', color: '#fff', borderRadius: '10px', fontWeight: 800, fontSize: '13px' }}>
+                  {loading ? 'SAVING...' : 'SAVE CHANGES'}
+                </button>
+              </div>
+            </div>
+          )}
 
         </div>
 
@@ -55,7 +217,7 @@ export default function Account() {
             </div>
             <div>
               <div style={{ fontSize: '11px', fontWeight: 800, color: '#93959f', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>Operating In</div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>Srikakulam City</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>Amadalavalasa</div>
             </div>
           </div>
           <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '4px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 800 }}>ACTIVE</div>

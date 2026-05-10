@@ -34,9 +34,11 @@ public class TelegramService {
         sb.append("*Order ID:* #").append(order.getId()).append("\n");
         sb.append("*Customer:* ").append(order.getName()).append(" (+91 ").append(order.getPhone()).append(")\n");
         sb.append("*Total:* ₹").append(order.getTotal()).append("\n");
-        sb.append("*Address:* ").append(order.getAddress()).append("\n\n");
-        
-        sb.append("*Items:*\n");
+        sb.append("*Address:* ").append(order.getAddress()).append("\n");
+        if (order.getGpsLocation() != null && !order.getGpsLocation().isEmpty()) {
+            sb.append("*GPS Location:* [View on Maps](https://maps.google.com/?q=").append(order.getGpsLocation()).append(")\n");
+        }
+        sb.append("\n*Items:*\n");
         order.getItems().forEach(item -> {
             sb.append("• ").append(item.getQuantity()).append(" x ").append(item.getName()).append("\n");
         });

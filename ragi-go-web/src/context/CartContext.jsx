@@ -6,7 +6,19 @@ const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    try {
+      const savedCart = localStorage.getItem('ragiGoCart');
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Save to localStorage whenever cart changes
+  React.useEffect(() => {
+    localStorage.setItem('ragiGoCart', JSON.stringify(cart));
+  }, [cart]);
 
   const addToCart = (item) => {
     if (item.available === false) return;

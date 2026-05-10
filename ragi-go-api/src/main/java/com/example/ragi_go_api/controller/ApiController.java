@@ -27,6 +27,9 @@ public class ApiController {
     @Autowired
     private com.example.ragi_go_api.repository.SettingsRepository settingsRepo;
 
+    @Autowired
+    private com.example.ragi_go_api.repository.UserRepository userRepo;
+
     // --- HEALTH / KEEP ALIVE ---
     @GetMapping("/ping")
     public ResponseEntity<String> ping() {
@@ -107,5 +110,25 @@ public class ApiController {
         order.setStatus(payload.get("status"));
         orderRepo.save(order);
         return ResponseEntity.ok(order);
+    }
+
+    @PutMapping("/orders/{id}/assign")
+    public ResponseEntity<AppOrder> assignOrder(@PathVariable String id, @RequestBody java.util.Map<String, String> payload) {
+        AppOrder order = orderRepo.findById(id);
+        if (order == null) return ResponseEntity.notFound().build();
+        
+        order.setAssignedTo(payload.get("assignedTo"));
+        orderRepo.save(order);
+        return ResponseEntity.ok(order);
+    }
+
+    @GetMapping("/orders/assigned/{phone}")
+    public List<AppOrder> getAssignedOrders(@PathVariable String phone) {
+        return orderRepo.findByAssignedToOrderByTimestampDesc(phone);
+    }
+
+    @GetMapping("/delivery-guys")
+    public List<com.example.ragi_go_api.model.User> getDeliveryGuys() {
+        return userRepo.findByRole("DELIVERY");
     }
 }

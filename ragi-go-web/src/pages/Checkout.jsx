@@ -11,20 +11,27 @@ export default function Checkout() {
   // Load saved details from localStorage on initial render
   const [name, setName] = useState(localStorage.getItem('savedName') || localStorage.getItem('userName') || '');
   const [phone, setPhone] = useState(localStorage.getItem('savedPhone') || localStorage.getItem('userPhone') || '');
-  const [address, setAddress] = useState(localStorage.getItem('savedAddress') || '');
+  const [address, setAddress] = useState(localStorage.getItem('userAddress') || localStorage.getItem('savedAddress') || '');
+  const [gpsLocation, setGpsLocation] = useState(localStorage.getItem('userGpsLocation') || null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const navigate = useNavigate();
 
   const handleNext = () => {
+    if (cartTotal === 0) {
+      alert("Your cart is empty. Please add some items before checking out.");
+      navigate('/menu');
+      return;
+    }
     if (!name || !address || !phone) {
       alert("Please enter name, phone and address");
       return;
     }
-    
-    // Pass delivery info to the payment page
-    navigate('/payment', { 
-      state: { name, phone, address } 
-    });
+    if (!gpsLocation) {
+      alert("Please capture your current location using the 'Use Current Location' button before proceeding.");
+      return;
+    }
+    navigate('/payment', { state: { name, phone, address, gpsLocation } });
   };
 
   return (
@@ -64,7 +71,10 @@ export default function Checkout() {
             </div>
 
             <div className="input-group">
-              <label>COMPLETE ADDRESS</label>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>COMPLETE ADDRESS</span>
+                {gpsLocation && <span style={{ color: '#2e7d32', fontWeight: 600, fontSize: '11px' }}><i className='bx bx-check-circle'></i> Location Saved</span>}
+              </label>
               <textarea 
                 value={address} 
                 onChange={(e) => setAddress(e.target.value)} 
@@ -73,6 +83,31 @@ export default function Checkout() {
                 placeholder="e.g. Flat No. 101, Amaravathi Rd, Guntur"
                 style={{ resize: 'none' }}
               />
+              
+              <button 
+                type="button"
+                onClick={() => {
+                  if (navigator.geolocation) {
+                    setIsProcessing(true);
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        setGpsLocation(`${pos.coords.latitude},${pos.coords.longitude}`);
+                        setIsProcessing(false);
+                      },
+                      (err) => {
+                        alert("Could not automatically detect your location.");
+                        setIsProcessing(false);
+                      }
+                    );
+                  } else {
+                    alert("Location services are not supported by your browser");
+                  }
+                }}
+                style={{ marginTop: '10px', width: '100%', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: gpsLocation ? '#e8f5e9' : '#f1f1f6', color: gpsLocation ? '#2e7d32' : 'var(--text-main)', border: gpsLocation ? '1px solid #c8e6c9' : '1px solid #e9e9eb', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                <i className='bx bx-current-location' style={{ fontSize: '16px' }}></i> 
+                {isProcessing ? 'Detecting Location...' : gpsLocation ? 'Update Delivery Location' : 'Use Current Location'}
+              </button>
             </div>
           </div>
 
@@ -88,6 +123,7 @@ export default function Checkout() {
         <button 
           className="primary-btn" 
           onClick={handleNext} 
+          disabled={isProcessing}
           style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
         >
           CONTINUE TO PAYMENT <i className='bx bx-right-arrow-alt'></i>

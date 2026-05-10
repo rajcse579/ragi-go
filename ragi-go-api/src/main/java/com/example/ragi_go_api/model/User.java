@@ -13,4 +13,6 @@ public class User {
     private String name;
     private String phone;
     private String role; // "USER" or "ADMIN"
+    private String address;
+    private String gpsLocation;
 }
