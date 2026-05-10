@@ -3,6 +3,8 @@ package com.example.ragi_go_api.repository;
 import com.example.ragi_go_api.model.MenuItem;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -12,6 +14,8 @@ import java.util.concurrent.ExecutionException;
 
 @Repository
 public class MenuItemRepository {
+
+    private static final Logger logger = LoggerFactory.getLogger(MenuItemRepository.class);
 
     @Autowired
     private Firestore firestore;
@@ -31,7 +35,7 @@ public class MenuItemRepository {
                 items.add(item);
             }
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            logger.error("Error fetching available menu items: {}", e.getMessage(), e);
         }
         return items;
     }
@@ -59,7 +63,7 @@ public class MenuItemRepository {
                 items.add(item);
             }
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            logger.error("Error fetching all menu items: {}", e.getMessage(), e);
         }
         return items;
     }
@@ -73,7 +77,7 @@ public class MenuItemRepository {
                 return item;
             }
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            logger.error("Error fetching menu item by ID {}: {}", id, e.getMessage(), e);
         }
         return null;
     }

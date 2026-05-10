@@ -3,6 +3,8 @@ package com.example.ragi_go_api.repository;
 import com.example.ragi_go_api.model.AppOrder;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -12,6 +14,8 @@ import java.util.concurrent.ExecutionException;
 
 @Repository
 public class AppOrderRepository {
+
+    private static final Logger logger = LoggerFactory.getLogger(AppOrderRepository.class);
 
     @Autowired
     private Firestore firestore;
@@ -23,6 +27,7 @@ public class AppOrderRepository {
         try {
             ApiFuture<QuerySnapshot> future = firestore.collection(COLLECTION_NAME)
                     .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .limit(50)
                     .get();
             List<QueryDocumentSnapshot> documents = future.get().getDocuments();
             for (QueryDocumentSnapshot document : documents) {
@@ -31,7 +36,7 @@ public class AppOrderRepository {
                 orders.add(order);
             }
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            logger.error("Error fetching all orders: {}", e.getMessage(), e);
         }
         return orders;
     }
@@ -42,6 +47,7 @@ public class AppOrderRepository {
             ApiFuture<QuerySnapshot> future = firestore.collection(COLLECTION_NAME)
                     .whereEqualTo("phone", phone)
                     .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .limit(50)
                     .get();
             List<QueryDocumentSnapshot> documents = future.get().getDocuments();
             for (QueryDocumentSnapshot document : documents) {
@@ -50,7 +56,7 @@ public class AppOrderRepository {
                 orders.add(order);
             }
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            logger.error("Error fetching orders for phone {}: {}", phone, e.getMessage(), e);
         }
         return orders;
     }
@@ -79,7 +85,7 @@ public class AppOrderRepository {
                 return order;
             }
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            logger.error("Error fetching order by ID {}: {}", id, e.getMessage(), e);
         }
         return null;
     }

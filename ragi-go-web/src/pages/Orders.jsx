@@ -14,17 +14,41 @@ export default function Orders() {
 
   useEffect(() => {
     const userPhone = localStorage.getItem('userPhone') || 'Unknown';
-    axios.get(`${API_BASE_URL}/orders/user/${userPhone}`)
-      .then(res => {
-        // Sort by timestamp desc to show latest first
-        const sorted = (res.data || []).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        setOrders(sorted);
+    
+    // 1. Instant Load from Cache
+    const cachedOrders = localStorage.getItem('ordersCache');
+    if (cachedOrders) {
+      try {
+        setOrders(JSON.parse(cachedOrders));
         setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error fetching orders", err);
-        setLoading(false);
+      } catch(e) {}
+    }
+
+    // 2. Real-time Firestore Listener
+    import('firebase/firestore').then(({ collection, query, where, onSnapshot }) => {
+      import('../firebase').then(({ db }) => {
+        const ordersQuery = query(collection(db, 'orders'), where('phone', '==', userPhone));
+        
+        const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+          const fetchedOrders = [];
+          snapshot.forEach(doc => {
+            fetchedOrders.push({ id: doc.id, ...doc.data() });
+          });
+
+          // Sort latest first
+          const sorted = fetchedOrders.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          setOrders(sorted);
+          localStorage.setItem('ordersCache', JSON.stringify(sorted));
+          setLoading(false);
+        }, (error) => {
+          console.error("Firestore listen error", error);
+          setLoading(false);
+        });
+
+        // Cleanup listener on unmount
+        return () => unsubscribe();
       });
+    });
   }, []);
 
   const getStatusColor = (status) => {
@@ -79,16 +103,29 @@ export default function Orders() {
             <p style={{ color: 'var(--text-light)', maxWidth: '200px' }}>When you place an order, it will appear here.</p>
           </div>
         ) : (
-          orders.map((order, index) => (
+          orders.map((order, index) => {
+            const isActive = order.status !== 'Delivered' && order.status !== 'Cancelled';
+            const progress = order.status === 'Pending' ? 25 : order.status === 'Accepted' ? 50 : order.status === 'Out for Delivery' ? 75 : 100;
+            
+            return (
             <div key={order.id} className="fade-in-up" style={{
               background: '#fff',
               padding: '20px',
               borderRadius: '12px',
               marginBottom: '16px',
-              boxShadow: 'var(--shadow-sm)',
-              border: '1px solid #e9e9eb',
-              animationDelay: `${index * 0.1}s`
+              boxShadow: isActive ? '0 8px 24px rgba(96, 178, 70, 0.15)' : 'var(--shadow-sm)',
+              border: isActive ? '1px solid var(--primary)' : '1px solid #e9e9eb',
+              animationDelay: `${index * 0.1}s`,
+              position: 'relative',
+              overflow: 'hidden'
             }}>
+              {/* Active Order Glowing Header */}
+              {isActive && (
+                <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '8px', margin: '-20px -20px 16px -20px', fontSize: '12px', fontWeight: 800, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                  <i className='bx bx-time-five bx-spin'></i> LIVE ORDER TRACKING
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #f1f1f6' }}>
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 800 }}>Raagi GO</div>
@@ -98,6 +135,25 @@ export default function Orders() {
                   <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>ID #{order.id}</div>
                 </div>
               </div>
+
+              {/* Progress Bar for Active Orders */}
+              {isActive && (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '10px', fontWeight: 800, color: 'var(--text-light)' }}>
+                    <span style={{ color: progress >= 25 ? 'var(--primary)' : 'inherit' }}>Pending</span>
+                    <span style={{ color: progress >= 50 ? 'var(--primary)' : 'inherit' }}>Accepted</span>
+                    <span style={{ color: progress >= 75 ? 'var(--primary)' : 'inherit' }}>On The Way</span>
+                  </div>
+                  <div style={{ height: '6px', background: '#f1f1f6', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', background: 'var(--primary)', width: `${progress}%`, transition: 'width 0.5s ease-in-out' }}></div>
+                  </div>
+                  <div style={{ marginTop: '12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'center', background: '#f8f8f8', padding: '10px', borderRadius: '8px' }}>
+                    {order.status === 'Pending' && "Waiting for restaurant to confirm your order..."}
+                    {order.status === 'Accepted' && "Your healthy meal is being prepared!"}
+                    {order.status === 'Out for Delivery' && "Your order is on the way to you!"}
+                  </div>
+                </div>
+              )}
 
               <div style={{ marginBottom: '16px' }}>
                 {order.items.map((item, idx) => (
@@ -117,7 +173,7 @@ export default function Orders() {
                 </button>
               </div>
             </div>
-          ))
+          )})
         )}
       </div>
 

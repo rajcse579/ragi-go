@@ -18,10 +18,13 @@ export default function Admin() {
   const [formData, setFormData] = useState({ name: '', price: '', imageUrl: '', available: true });
   const navigate = useNavigate();
 
+  const [isShopOpen, setIsShopOpen] = useState(true);
+
   // Professional notification sound
   const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
   useEffect(() => {
+    fetchShopStatus();
     fetchOrders();
     fetchMenu();
     // Auto-refresh every 5 seconds for real-time feel
@@ -30,6 +33,27 @@ export default function Admin() {
     }, 5000);
     return () => clearInterval(interval);
   }, [lastOrderCount, activeTab]);
+
+  const fetchShopStatus = () => {
+    axios.get(`${API_BASE_URL}/settings/status`)
+      .then(res => setIsShopOpen(res.data.isOpen))
+      .catch(err => console.error("Error fetching shop status", err));
+  };
+
+  const toggleShopStatus = () => {
+    const newStatus = !isShopOpen;
+    // Removed window.confirm popup as requested
+
+    // Optimistic UI update for instant feedback
+    setIsShopOpen(newStatus);
+
+    axios.put(`${API_BASE_URL}/settings/status`, { isOpen: newStatus })
+      .catch(err => {
+        // Revert on failure
+        setIsShopOpen(!newStatus);
+        alert("Failed to update shop status");
+      });
+  };
 
   const fetchOrders = () => {
     axios.get(`${API_BASE_URL}/orders`)
@@ -114,7 +138,47 @@ export default function Admin() {
           <i className='bx bx-left-arrow-alt' style={{ fontSize: '24px', cursor: 'pointer' }} onClick={() => navigate('/menu')}></i>
           <h2 style={{ fontSize: '18px', margin: 0 }}>Admin Dashboard</h2>
         </div>
-        <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>LIVE</div>
+
+        {/* Modern Shop Open/Close Toggle Switch */}
+        <div
+          onClick={toggleShopStatus}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer'
+          }}
+        >
+          <span style={{
+            fontSize: '11px',
+            fontWeight: 800,
+            color: isShopOpen ? 'var(--primary)' : 'var(--text-light)',
+            transition: 'color 0.3s'
+          }}>
+            {isShopOpen ? 'SHOP OPEN' : 'SHOP CLOSED'}
+          </span>
+          <div style={{
+            width: '44px',
+            height: '24px',
+            background: isShopOpen ? 'var(--primary)' : '#e9e9eb',
+            borderRadius: '24px',
+            position: 'relative',
+            transition: 'background 0.3s ease',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              background: '#fff',
+              borderRadius: '50%',
+              position: 'absolute',
+              top: '2px',
+              left: isShopOpen ? '22px' : '2px',
+              transition: 'left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+            }}></div>
+          </div>
+        </div>
       </div>
 
       {/* Tab Switcher */}

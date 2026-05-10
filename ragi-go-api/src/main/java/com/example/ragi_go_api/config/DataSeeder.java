@@ -9,10 +9,10 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Arrays;
 import java.util.List;
 
-@Configuration
+// @Configuration
 public class DataSeeder {
 
-    @Bean
+    // @Bean
     CommandLineRunner initDatabase(MenuItemRepository repository) {
         return args -> {
             // Check if there are any items in Firestore

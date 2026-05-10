@@ -2,8 +2,11 @@ package com.example.ragi_go_api.service;
 
 import com.example.ragi_go_api.model.AppOrder;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,6 +14,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class TelegramService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TelegramService.class);
 
     @Value("${telegram.bot.token}")
     private String botToken;
@@ -20,6 +25,7 @@ public class TelegramService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Async
     public void sendOrderNotification(AppOrder order) {
         String url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
 
@@ -44,9 +50,9 @@ public class TelegramService {
 
             try {
                 restTemplate.postForEntity(url, request, String.class);
-                System.out.println("Telegram notification sent to " + chatId.trim() + " for order: " + order.getId());
+                logger.info("Telegram notification sent to {} for order: {}", chatId.trim(), order.getId());
             } catch (Exception e) {
-                System.err.println("Failed to send Telegram notification to " + chatId.trim() + ": " + e.getMessage());
+                logger.error("Failed to send Telegram notification to {}: {}", chatId.trim(), e.getMessage());
             }
         }
     }

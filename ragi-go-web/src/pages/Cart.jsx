@@ -1,14 +1,45 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import axios from 'axios';
+import API_BASE_URL from '../apiConfig';
 import '../Sprite.css';
 
 export default function Cart() {
   const { cart, addToCart, removeFromCart, cartTotal, cartCount } = useCart();
   const navigate = useNavigate();
 
+  const [isShopOpen, setIsShopOpen] = React.useState(true);
+
+  React.useEffect(() => {
+    import('firebase/firestore').then(({ doc, onSnapshot }) => {
+      import('../firebase').then(({ db }) => {
+        const unsubStatus = onSnapshot(doc(db, 'settings', 'shop_status'), (docSnap) => {
+          if (docSnap.exists()) {
+            setIsShopOpen(docSnap.data().isOpen);
+          }
+        });
+      });
+    });
+  }, []);
+
   return (
     <div className="page-container" style={{ background: '#fff' }}>
+      
+      {/* SHOP CLOSED BANNER */}
+      {!isShopOpen && (
+        <div style={{
+          background: '#ff4d4d', color: '#fff', padding: '12px 20px', 
+          textAlign: 'center', fontSize: '13px', fontWeight: 800, 
+          position: 'sticky', top: 0, zIndex: 100, display: 'flex', 
+          alignItems: 'center', justifyContent: 'center', gap: '8px',
+          boxShadow: '0 4px 10px rgba(255, 77, 77, 0.3)'
+        }}>
+          <i className='bx bx-error-circle' style={{ fontSize: '18px' }}></i>
+          THE RESTAURANT IS CURRENTLY CLOSED
+        </div>
+      )}
+
       <div className="header-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <i className='bx bx-left-arrow-alt' style={{ fontSize: '24px', cursor: 'pointer' }} onClick={() => navigate('/menu')}></i>
@@ -97,8 +128,17 @@ export default function Cart() {
           </div>
 
           <div style={{ position: 'absolute', bottom: 70, left: 0, right: 0, padding: '15px 20px', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)', boxShadow: '0 -4px 20px rgba(0,0,0,0.05)', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', zIndex: 100 }}>
-             <button className="primary-btn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', margin: 0 }} onClick={() => navigate('/checkout')}>
-               <span style={{ fontSize: '14px', fontWeight: 800 }}>PLACE ORDER</span>
+             <button 
+               className="primary-btn" 
+               disabled={!isShopOpen}
+               style={{ 
+                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', margin: 0,
+                 background: isShopOpen ? 'var(--primary)' : '#bebfc5',
+                 cursor: isShopOpen ? 'pointer' : 'not-allowed'
+               }} 
+               onClick={() => navigate('/checkout')}
+             >
+               <span style={{ fontSize: '14px', fontWeight: 800 }}>{isShopOpen ? 'PLACE ORDER' : 'RESTAURANT CLOSED'}</span>
                <span style={{ fontSize: '16px', fontWeight: 800 }}>₹{cartTotal + 10}</span>
              </button>
           </div>

@@ -24,6 +24,28 @@ public class ApiController {
     @Autowired
     private TelegramService telegramService;
 
+    @Autowired
+    private com.example.ragi_go_api.repository.SettingsRepository settingsRepo;
+
+    // --- HEALTH / KEEP ALIVE ---
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("pong");
+    }
+
+    // --- SETTINGS ---
+    @GetMapping("/settings/status")
+    public ResponseEntity<java.util.Map<String, Boolean>> getShopStatus() {
+        return ResponseEntity.ok(java.util.Map.of("isOpen", settingsRepo.isShopOpen()));
+    }
+
+    @PutMapping("/settings/status")
+    public ResponseEntity<java.util.Map<String, Boolean>> updateShopStatus(@RequestBody java.util.Map<String, Boolean> payload) {
+        boolean isOpen = payload.getOrDefault("isOpen", true);
+        settingsRepo.setShopOpen(isOpen);
+        return ResponseEntity.ok(java.util.Map.of("isOpen", isOpen));
+    }
+
     // --- MENU ITEMS ---
     @GetMapping("/menu")
     public List<MenuItem> getMenu() {

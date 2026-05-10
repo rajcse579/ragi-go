@@ -14,6 +14,8 @@ export default function Menu() {
   const [logoTaps, setLogoTaps] = useState(0);
   const navigate = useNavigate();
 
+  const [isShopOpen, setIsShopOpen] = useState(true);
+
   const handleLogoTap = () => {
     const newTaps = logoTaps + 1;
     setLogoTaps(newTaps);
@@ -34,6 +36,19 @@ export default function Menu() {
   }, [cartCount]);
 
   useEffect(() => {
+    // Fetch Shop Status via Real-time Listener
+    import('firebase/firestore').then(({ doc, onSnapshot }) => {
+      import('../firebase').then(({ db }) => {
+        const unsubStatus = onSnapshot(doc(db, 'settings', 'shop_status'), (docSnap) => {
+          if (docSnap.exists()) {
+            setIsShopOpen(docSnap.data().isOpen);
+          }
+        });
+        
+        // Save the unsub function to a ref or just let it live for the session since it's a root component
+      });
+    });
+
     // Try to load from cache first for instant UI
     const cachedMenu = localStorage.getItem('menuCache');
     if (cachedMenu) {
@@ -50,24 +65,51 @@ export default function Menu() {
       }
     }
 
-    axios.get(`${API_BASE_URL}/menu`)
-      .then(res => {
-        const sortedItems = res.data.sort((a, b) => {
-          if (a.available === b.available) return 0;
-          return a.available ? -1 : 1;
+    // Set up real-time listener for instant menu updates
+    import('firebase/firestore').then(({ collection, onSnapshot }) => {
+      import('../firebase').then(({ db }) => {
+        const unsubscribe = onSnapshot(collection(db, 'menu_items'), (snapshot) => {
+          const fetchedItems = [];
+          snapshot.forEach(doc => {
+            fetchedItems.push({ id: doc.id, ...doc.data() });
+          });
+
+          const sortedItems = fetchedItems.sort((a, b) => {
+            if (a.available === b.available) return 0;
+            return a.available ? -1 : 1;
+          });
+
+          setItems(sortedItems);
+          localStorage.setItem('menuCache', JSON.stringify(sortedItems));
+          setLoading(false);
+        }, (error) => {
+          console.error("Firestore listen error", error);
+          setLoading(false);
         });
-        setItems(sortedItems);
-        localStorage.setItem('menuCache', JSON.stringify(sortedItems));
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Fetch error", err);
-        setLoading(false);
+
+        // Cleanup listener on unmount to save bandwidth
+        return () => unsubscribe();
       });
+    });
   }, []);
 
   return (
     <div className="page-container">
+      
+      {/* SHOP CLOSED BANNER */}
+      {!isShopOpen && (
+        <div style={{
+          background: '#ff4d4d', color: '#fff', padding: '12px 20px', 
+          textAlign: 'center', fontSize: '13px', fontWeight: 800, 
+          position: 'sticky', top: 0, zIndex: 100, display: 'flex', 
+          alignItems: 'center', justifyContent: 'center', gap: '8px',
+          boxShadow: '0 4px 10px rgba(255, 77, 77, 0.3)'
+        }}>
+          <i className='bx bx-store-alt bx-tada' style={{ fontSize: '18px' }}></i>
+          THE RESTAURANT IS CURRENTLY CLOSED
+        </div>
+      )}
+
       {/* Simplified Header with Logout */}
       <div className="header-bar">
         <h2 
@@ -158,14 +200,14 @@ export default function Menu() {
                   )}
                 </div>
                 <div className="add-btn-container" style={{ pointerEvents: 'none' }}>
-                  {item.available ? (
+                  {isShopOpen && item.available ? (
                     <button className="add-btn" onClick={(e) => { e.stopPropagation(); addToCart(item); }} style={{ pointerEvents: 'auto' }}>
                       ADD
                       <span style={{ position: 'absolute', top: '-5px', right: '-5px', color: 'var(--secondary)', fontWeight: 800 }}>+</span>
                     </button>
                   ) : (
                     <button className="add-btn" disabled style={{ background: '#fff', color: '#bebfc5', border: '1px solid #bebfc5', cursor: 'not-allowed', boxShadow: 'none' }}>
-                      ADD
+                      {!isShopOpen ? 'CLOSED' : 'ADD'}
                     </button>
                   )}
                 </div>

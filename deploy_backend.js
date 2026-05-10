@@ -100,21 +100,52 @@ async function deploy() {
   }
 
   console.log('--- Deploying to Cloud Run ---');
-  const deployRes = await run.namespaces.services.create({
-    parent: `namespaces/${projectId}/locations/${region}`,
-    requestBody: {
-      apiVersion: 'serving.knative.dev/v1',
-      kind: 'Service',
-      metadata: { name: serviceName, namespace: projectId },
-      spec: {
-        template: {
-          spec: {
-            containers: [{ image: `gcr.io/${projectId}/${serviceName}` }],
+  const runRegional = google.run({
+    version: 'v1',
+    rootUrl: `https://${region}-run.googleapis.com`
+  });
+
+  try {
+    // Attempt to update existing service
+    await runRegional.namespaces.services.replaceService({
+      name: `namespaces/${projectId}/services/${serviceName}`,
+      requestBody: {
+        apiVersion: 'serving.knative.dev/v1',
+        kind: 'Service',
+        metadata: { name: serviceName, namespace: projectId },
+        spec: {
+          template: {
+            spec: {
+              containers: [{ image: `gcr.io/${projectId}/${serviceName}` }],
+            },
           },
         },
       },
-    },
-  });
+    });
+    console.log('Deployment updated successfully.');
+  } catch (err) {
+    if (err.code === 404) {
+      // Create new service if it doesn't exist
+      await runRegional.namespaces.services.create({
+        parent: `namespaces/${projectId}`,
+        requestBody: {
+          apiVersion: 'serving.knative.dev/v1',
+          kind: 'Service',
+          metadata: { name: serviceName, namespace: projectId },
+          spec: {
+            template: {
+              spec: {
+                containers: [{ image: `gcr.io/${projectId}/${serviceName}` }],
+              },
+            },
+          },
+        },
+      });
+      console.log('Deployment created successfully.');
+    } else {
+      throw err;
+    }
+  }
 
   console.log('Deployment triggered.');
   console.log('Please check Cloud Run console for the URL.');
