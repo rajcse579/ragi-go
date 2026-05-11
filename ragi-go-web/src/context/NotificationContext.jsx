@@ -25,6 +25,13 @@ export const NotificationProvider = ({ children }) => {
   }, [notifications]);
 
   const addNotification = (notif) => {
+    const clearedTimestamp = localStorage.getItem('notificationsClearedTimestamp');
+    const notifTimestamp = notif.timestamp || Date.now();
+    
+    if (clearedTimestamp && notifTimestamp < parseInt(clearedTimestamp)) {
+      return; // Ignore notifications from before the clear
+    }
+
     setNotifications((prev) => {
       // Prevent duplicates by checking orderId/timestamp
       const isDuplicate = prev.some(n => 
@@ -35,7 +42,7 @@ export const NotificationProvider = ({ children }) => {
       if (isDuplicate) return prev;
       
       return [
-        { id: Date.now().toString(), timestamp: notif.timestamp || Date.now(), read: false, ...notif },
+        { id: Date.now().toString(), timestamp: notifTimestamp, read: false, ...notif },
         ...prev
       ].slice(0, 10); // Keep only the latest 10 notifications
     });
@@ -48,6 +55,7 @@ export const NotificationProvider = ({ children }) => {
   const clearNotifications = () => {
     console.log("Clearing all notifications");
     localStorage.setItem('userNotifications', '[]');
+    localStorage.setItem('notificationsClearedTimestamp', Date.now().toString());
     setNotifications([]);
   };
 

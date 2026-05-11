@@ -116,7 +116,7 @@ export default function OrderNotification() {
               }
 
               // ALWAYS add to in-app history (duplicates handled in context)
-              addNotification({ title: promo.title, body: promo.body, status: 'Promo', orderId: change.doc.id });
+              addNotification({ title: promo.title, body: promo.body, status: 'Promo', orderId: change.doc.id, timestamp: promo.timestamp });
             }
           });
         }, (error) => {
