@@ -49,6 +49,8 @@ export default function OrderNotification() {
 
     let unsubscribeOrders;
     let unsubscribeBroadcasts;
+    let unsubscribeAdminOrders;
+    let unsubscribeDeliveryOrders;
 
     import('firebase/firestore').then(({ collection, query, where, onSnapshot }) => {
       import('../firebase').then(({ db }) => {
@@ -107,6 +109,92 @@ export default function OrderNotification() {
           console.error("Order notification listener error:", error);
         });
 
+        // --- 3. Listen for New Orders (For Admins) ---
+        const userRole = localStorage.getItem('userRole');
+        
+        if (userRole === 'ADMIN') {
+          const adminOrdersQuery = query(collection(db, 'orders'), where('status', '==', 'Pending'));
+          let initialAdminOrdersLoad = true;
+          
+          unsubscribeAdminOrders = onSnapshot(adminOrdersQuery, (snapshot) => {
+            if (initialAdminOrdersLoad) {
+              initialAdminOrdersLoad = false;
+              return;
+            }
+            
+            snapshot.docChanges().forEach((change) => {
+              if (change.type === 'added') {
+                const order = change.doc.data();
+                const title = 'New Order Received! 🔔';
+                const body = `You have received a new order #${order.id ? order.id.slice(-5) : 'N/A'}.`;
+                
+                // Log notification in context
+                addNotification({ title, body, status: 'Pending', orderId: order.id });
+
+                LocalNotifications.schedule({
+                  notifications: [
+                    {
+                      title: title,
+                      body: body,
+                      id: Math.floor(Math.random() * 100000),
+                      schedule: { at: new Date(Date.now() + 1000) },
+                      channelId: 'orders',
+                      sound: null,
+                      attachments: null,
+                      actionTypeId: "",
+                      extra: null
+                    }
+                  ]
+                }).catch(err => console.error("Error scheduling admin notification", err));
+              }
+            });
+          }, (error) => {
+            console.error("Admin order notification listener error:", error);
+          });
+        }
+
+        // --- 4. Listen for Assigned Orders (For Delivery) ---
+        if (userRole === 'DELIVERY') {
+          const deliveryOrdersQuery = query(collection(db, 'orders'), where('assignedTo', '==', userPhone));
+          let initialDeliveryOrdersLoad = true;
+          
+          unsubscribeDeliveryOrders = onSnapshot(deliveryOrdersQuery, (snapshot) => {
+            if (initialDeliveryOrdersLoad) {
+              initialDeliveryOrdersLoad = false;
+              return;
+            }
+            
+            snapshot.docChanges().forEach((change) => {
+              if (change.type === 'added') {
+                const order = change.doc.data();
+                const title = 'New Order Assigned! 📦';
+                const body = `Order #${order.id ? order.id.slice(-5) : 'N/A'} has been assigned to you.`;
+                
+                // Log notification in context
+                addNotification({ title, body, status: 'Assigned', orderId: order.id });
+
+                LocalNotifications.schedule({
+                  notifications: [
+                    {
+                      title: title,
+                      body: body,
+                      id: Math.floor(Math.random() * 100000),
+                      schedule: { at: new Date(Date.now() + 1000) },
+                      channelId: 'orders',
+                      sound: null,
+                      attachments: null,
+                      actionTypeId: "",
+                      extra: null
+                    }
+                  ]
+                }).catch(err => console.error("Error scheduling delivery notification", err));
+              }
+            });
+          }, (error) => {
+            console.error("Delivery order notification listener error:", error);
+          });
+        }
+
         // --- 2. Listen for Admin Broadcasts (Promotions) ---
         const broadcastsQuery = query(collection(db, 'broadcasts'));
 
@@ -150,6 +238,8 @@ export default function OrderNotification() {
     return () => {
       if (unsubscribeOrders) unsubscribeOrders();
       if (unsubscribeBroadcasts) unsubscribeBroadcasts();
+      if (unsubscribeAdminOrders) unsubscribeAdminOrders();
+      if (unsubscribeDeliveryOrders) unsubscribeDeliveryOrders();
     };
   }, [userPhone]);
 

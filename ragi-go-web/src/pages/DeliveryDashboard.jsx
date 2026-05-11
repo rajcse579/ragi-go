@@ -13,37 +13,40 @@ export default function DeliveryDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchOrders();
-    
-    // Live Order Tracking with SSE (Instead of Polling)
-    const eventSource = new EventSource(`${API_BASE_URL}/orders/stream`);
-    eventSource.onmessage = (event) => {
-      fetchOrders();
-    };
-    
-    return () => eventSource.close();
-  }, []);
-
-  const fetchOrders = () => {
     const userPhone = localStorage.getItem('userPhone');
     if (!userPhone) {
       setLoading(false);
       return;
     }
 
-    axios.get(`${API_BASE_URL}/orders/assigned/${userPhone}`)
-      .then(res => {
-        const data = res.data || [];
-        const sorted = data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        setOrders(sorted);
-        setLastOrderCount(data.length);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error fetching orders", err);
-        setLoading(false);
+    // Real-time Firestore Listener for Assigned Orders
+    let unsubscribe;
+    import('firebase/firestore').then(({ collection, query, where, onSnapshot }) => {
+      import('../firebase').then(({ db }) => {
+        const ordersQuery = query(collection(db, 'orders'), where('assignedTo', '==', userPhone));
+        
+        console.log("DeliveryDashboard: Querying for assignedTo ===", userPhone);
+        unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+          console.log("DeliveryDashboard: Snapshot received, docs count:", snapshot.size);
+          const fetchedOrders = [];
+          snapshot.forEach(doc => {
+            fetchedOrders.push({ id: doc.id, ...doc.data() });
+          });
+
+          // Sort latest first
+          const sorted = fetchedOrders.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          setOrders(sorted);
+          setLastOrderCount(fetchedOrders.length);
+          setLoading(false);
+        }, (error) => {
+          console.error("Firestore listen failed", error);
+          setLoading(false);
+        });
       });
-  };
+    });
+    
+    return () => { if(unsubscribe) unsubscribe(); };
+  }, []);
 
   const updateStatus = (orderId, targetStatus) => {
     if (targetStatus !== "Out for Delivery" && targetStatus !== "Delivered") return; // Restrict to delivery flow
@@ -56,8 +59,7 @@ export default function DeliveryDashboard() {
     
     axios.put(`${API_BASE_URL}/orders/${orderId}/status`, { status: targetStatus })
       .then(() => {
-        // Just fetch to ensure sync, UI is already updated
-        fetchOrders();
+        // UI will be updated automatically by the Firestore listener
       })
       .catch(err => {
         console.error("Status update failed", err);
