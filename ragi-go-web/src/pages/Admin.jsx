@@ -11,7 +11,7 @@ export default function Admin() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastOrderCount, setLastOrderCount] = useState(0);
-  const [newOrderAlert, setNewOrderAlert] = useState(false);
+
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' or 'menu'
   const [menuItems, setMenuItems] = useState([]);
   const [deliveryGuys, setDeliveryGuys] = useState([]);
@@ -29,8 +29,7 @@ export default function Admin() {
 
   const [isShopOpen, setIsShopOpen] = useState(true);
 
-  // Professional notification sound
-  const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
 
   useEffect(() => {
     fetchShopStatus();
@@ -53,11 +52,7 @@ export default function Admin() {
 
           // Trigger notification if order count increases
           setOrders(prevOrders => {
-            if (sorted.length > prevOrders.length && prevOrders.length !== 0) {
-              notificationSound.play().catch(e => console.log("Sound play blocked by browser"));
-              setNewOrderAlert(true);
-              setTimeout(() => setNewOrderAlert(false), 8000);
-            }
+
             return sorted;
           });
 
@@ -321,18 +316,7 @@ export default function Admin() {
       <div style={{ padding: '20px', flex: 1, overflowY: 'auto' }}>
         {activeTab === 'orders' ? (
           <>
-            {/* Floating Alert for New Orders */}
-            {newOrderAlert && (
-              <div className="fade-in-up" style={{
-                position: 'absolute', top: '120px', left: '10px', right: '10px',
-                background: 'var(--primary)', color: '#fff', padding: '10px 15px', borderRadius: '50px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                boxShadow: '0 8px 20px rgba(252, 128, 25, 0.4)', zIndex: 9999, fontWeight: 800, fontSize: '11px', textAlign: 'center'
-              }}>
-                <i className='bx bxs-bell-ring bx-tada' style={{ fontSize: '16px' }}></i>
-                NEW ORDER RECEIVED!
-              </div>
-            )}
+
 
             {/* Stats Row */}
             <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', marginBottom: '24px', paddingBottom: '5px' }}>
@@ -450,22 +434,60 @@ export default function Admin() {
 
                   {/* Management Section */}
                   <div style={{ background: '#f5f5f7', padding: '12px', borderRadius: '12px', marginTop: '16px' }}>
-                    {/* Assign Delivery Guy */}
                     <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', flexShrink: 0 }}>ASSIGN TO:</label>
+                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', flexShrink: 0, width: '80px' }}>STATUS:</label>
+                      <select
+                        value={order.status}
+                        onChange={(e) => updateStatus(order.id, e.target.value)}
+                        style={{
+                          padding: '8px 30px 8px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e9e9eb',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          flex: 1,
+                          outline: 'none',
+                          background: '#fff',
+                          cursor: 'pointer',
+                          appearance: 'none',
+                          WebkitAppearance: 'none',
+                          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2393959f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 10px center',
+                          color: 'var(--text-main)',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        {STATUS_OPTIONS.map(status => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Assign Delivery Guy */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', flexShrink: 0, width: '80px' }}>ASSIGN TO:</label>
                       <select
                         value={order.assignedTo || ''}
                         onChange={(e) => assignOrder(order.id, e.target.value)}
                         disabled={order.status === 'Pending'}
                         style={{
-                          padding: '8px',
+                          padding: '8px 30px 8px 12px',
                           borderRadius: '8px',
                           border: '1px solid #e9e9eb',
-                          fontSize: '12px',
+                          fontSize: '13px',
+                          fontWeight: '600',
                           flex: 1,
                           outline: 'none',
-                          background: order.status === 'Pending' ? '#e9e9eb' : '#fff',
-                          cursor: order.status === 'Pending' ? 'not-allowed' : 'pointer'
+                          background: order.status === 'Pending' ? '#f5f5f7' : '#fff',
+                          cursor: order.status === 'Pending' ? 'not-allowed' : 'pointer',
+                          appearance: 'none',
+                          WebkitAppearance: 'none',
+                          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2393959f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 10px center',
+                          color: order.status === 'Pending' ? 'var(--text-light)' : 'var(--text-main)',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                         }}
                       >
                         <option value="">Unassigned</option>
@@ -473,21 +495,6 @@ export default function Admin() {
                           <option key={guy.phone} value={guy.phone}>{guy.name} ({guy.phone})</option>
                         ))}
                       </select>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '2px', overflowX: 'auto' }}>
-                      {STATUS_OPTIONS.map(status => (
-                        <button
-                          key={status} onClick={() => updateStatus(order.id, status)}
-                          style={{
-                            padding: '6px 4px', borderRadius: '20px', fontSize: '9px', fontWeight: 800, cursor: 'pointer', flex: 1,
-                            border: '1px solid ' + (order.status === status ? getStatusColor(status) : '#e9e9eb'),
-                            background: order.status === status ? getStatusColor(status) : '#fff',
-                            color: order.status === status ? '#fff' : 'var(--text-secondary)',
-                            textAlign: 'center'
-                          }}
-                        >{status}</button>
-                      ))}
                     </div>
                     </div>
                   </div>
