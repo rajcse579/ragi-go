@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../apiConfig';
 import ProgressiveImage from '../components/ProgressiveImage';
+import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS = ["Pending", "Accepted", "Out for Delivery", "Delivered", "Cancelled"];
 
@@ -34,12 +35,15 @@ export default function Admin() {
     fetchOrders();
     fetchMenu();
     fetchDeliveryGuys();
-    // Auto-refresh every 5 seconds for real-time feel
-    const interval = setInterval(() => {
-      if (activeTab === 'orders') fetchOrders();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [lastOrderCount, activeTab]);
+    
+    // Live Order Tracking with SSE (Instead of Polling)
+    const eventSource = new EventSource(`${API_BASE_URL}/orders/stream`);
+    eventSource.onmessage = (event) => {
+      fetchOrders();
+    };
+    
+    return () => eventSource.close();
+  }, [lastOrderCount]);
 
   const fetchShopStatus = () => {
     axios.get(`${API_BASE_URL}/settings/status`)
@@ -58,7 +62,7 @@ export default function Admin() {
       .catch(err => {
         // Revert on failure
         setIsShopOpen(!newStatus);
-        alert("Failed to update shop status");
+        toast.error("Failed to update shop status");
       });
   };
 
@@ -107,7 +111,7 @@ export default function Admin() {
       setShowMenuModal(false);
       setEditingItem(null);
       setFormData({ name: '', price: '', imageUrl: '', available: true });
-    }).catch(err => alert('Failed to save menu item'));
+    }).catch(err => toast.error('Failed to save menu item'));
   };
 
   const deleteMenuItem = (id) => {
@@ -132,7 +136,7 @@ export default function Admin() {
   const handleSendPromo = (e) => {
     e.preventDefault();
     if (!promoForm.title || !promoForm.body) {
-      alert("Title and Message are required!");
+      toast.error("Title and Message are required!");
       return;
     }
     setShowBroadcastConfirm(true);
@@ -157,7 +161,7 @@ export default function Admin() {
       setTimeout(() => setPromoSuccess(false), 4000);
     } catch (err) {
       console.error("Error sending broadcast", err);
-      alert("Failed to send broadcast");
+      toast.error("Failed to send broadcast");
     } finally {
       setIsSendingPromo(false);
     }
@@ -170,7 +174,7 @@ export default function Admin() {
       })
       .catch(err => {
         console.error("Status update failed", err);
-        alert('Failed to update status');
+        toast.error('Failed to update status');
       });
   };
 
@@ -181,7 +185,7 @@ export default function Admin() {
       })
       .catch(err => {
         console.error("Assign failed", err);
-        alert('Failed to assign order');
+        toast.error('Failed to assign order');
       });
   };
 

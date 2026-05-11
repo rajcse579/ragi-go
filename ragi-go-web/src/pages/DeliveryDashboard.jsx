@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../apiConfig';
+import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS = ["Pending", "Accepted", "Out for Delivery", "Delivered", "Cancelled"];
 
@@ -13,10 +14,14 @@ export default function DeliveryDashboard() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(() => {
+    
+    // Live Order Tracking with SSE (Instead of Polling)
+    const eventSource = new EventSource(`${API_BASE_URL}/orders/stream`);
+    eventSource.onmessage = (event) => {
       fetchOrders();
-    }, 5000);
-    return () => clearInterval(interval);
+    };
+    
+    return () => eventSource.close();
   }, []);
 
   const fetchOrders = () => {
@@ -56,7 +61,7 @@ export default function DeliveryDashboard() {
       })
       .catch(err => {
         console.error("Status update failed", err);
-        alert('Failed to update status');
+        toast.error('Failed to update status');
         setOrders(previousOrders); // Revert on failure
       });
   };

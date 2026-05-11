@@ -117,9 +117,35 @@ export default function Orders() {
         )}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p style={{ color: 'var(--text-light)' }}>Loading your history...</p>
-          </div>
+          [1, 2, 3].map((i) => (
+            <div key={i} style={{
+              background: '#fff',
+              padding: '20px',
+              borderRadius: '12px',
+              marginBottom: '16px',
+              border: '1px solid #e9e9eb',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #f1f1f6' }}>
+                <div style={{ width: '40%' }}>
+                  <div className="skeleton skeleton-title" style={{ width: '80%' }}></div>
+                  <div className="skeleton skeleton-text" style={{ width: '60%' }}></div>
+                </div>
+                <div style={{ width: '20%', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <div className="skeleton skeleton-text" style={{ width: '100%', height: '14px' }}></div>
+                  <div className="skeleton skeleton-text" style={{ width: '70%', height: '10px', marginTop: '4px' }}></div>
+                </div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <div className="skeleton skeleton-text" style={{ width: '50%' }}></div>
+                <div className="skeleton skeleton-text" style={{ width: '40%' }}></div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #f1f1f6', paddingTop: '12px' }}>
+                <div className="skeleton skeleton-text" style={{ width: '30%' }}></div>
+                <div className="skeleton" style={{ width: '70px', height: '24px', borderRadius: '4px' }}></div>
+              </div>
+            </div>
+          ))
         ) : orders.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '60px', textAlign: 'center' }}>
             <div style={{ width: '120px', height: '120px', background: '#fff', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '24px', boxShadow: 'var(--shadow-sm)' }}>

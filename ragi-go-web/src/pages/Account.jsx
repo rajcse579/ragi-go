@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
 import { useNotifications } from '../context/NotificationContext';
+import toast from 'react-hot-toast';
 
 export default function Account() {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export default function Account() {
 
   const saveProfile = async () => {
     if (!editData.name || !editData.phone) {
-      alert("Name and Phone are required.");
+      toast.error("Name and Phone are required.");
       return;
     }
     setLoading(true);
@@ -66,7 +67,7 @@ export default function Account() {
       setEditData({ ...editData, password: '' });
     } catch (err) {
       console.error(err);
-      alert("Failed to update profile.");
+      toast.error("Failed to update profile.");
     } finally {
       setLoading(false);
     }
@@ -173,12 +174,12 @@ export default function Account() {
                           setLoading(false);
                         },
                         (err) => {
-                          alert("Could not automatically detect your location.");
+                          toast.error("Could not automatically detect your location.");
                           setLoading(false);
                         }
                       );
                     } else {
-                      alert("Location services are not supported by your browser");
+                      toast.error("Location services are not supported by your browser");
                     }
                   }}
                   style={{ marginTop: '10px', width: '100%', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: editData.gpsLocation ? '#e8f5e9' : '#f1f1f6', color: editData.gpsLocation ? '#2e7d32' : 'var(--text-main)', border: editData.gpsLocation ? '1px solid #c8e6c9' : '1px solid #e9e9eb', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}

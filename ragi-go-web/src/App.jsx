@@ -4,6 +4,7 @@ import { CartProvider } from './context/CartContext';
 import { NotificationProvider } from './context/NotificationContext';
 import OrderNotification from './components/OrderNotification';
 import './App.css';
+import { Toaster } from 'react-hot-toast';
 
 import { Suspense, lazy } from 'react';
 
@@ -19,7 +20,23 @@ const Account = lazy(() => import('./pages/Account'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Signup = lazy(() => import('./pages/Signup'));
 const Payment = lazy(() => import('./pages/Payment'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 
+
+const ProtectedRoute = ({ children, requiredRole }) => {
+  const userEmail = localStorage.getItem('userEmail');
+  const userRole = localStorage.getItem('userRole');
+
+  if (!userEmail) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole && userRole !== requiredRole) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
 
 function App() {
   const [isOffline, setIsOffline] = React.useState(!navigator.onLine);
@@ -39,6 +56,7 @@ function App() {
 
   return (
     <div className="mobile-app-container">
+      <Toaster position="top-center" reverseOrder={false} />
       {isOffline && (
         <div className="offline-banner">
           <i className='bx bx-wifi-off'></i>
@@ -66,16 +84,17 @@ function App() {
                   ? (localStorage.getItem('userRole') === 'ADMIN' ? <Navigate to="/admin" /> : <Navigate to="/menu" />)
                   : <Signup />
               } />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/payment" element={<Payment />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/delivery" element={<DeliveryDashboard />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/account" element={<Account />} />
-              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
+              <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+              <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+              <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute requiredRole="ADMIN"><Admin /></ProtectedRoute>} />
+              <Route path="/delivery" element={<ProtectedRoute><DeliveryDashboard /></ProtectedRoute>} />
+              <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+              <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             </Routes>
           </Suspense>
         </BrowserRouter>

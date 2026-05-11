@@ -84,4 +84,35 @@ public class UserRepository {
         }
         return user;
     }
+
+    public void saveResetToken(String email, String token, long expiryTime) {
+        try {
+            java.util.Map<String, Object> data = new java.util.HashMap<>();
+            data.put("token", token);
+            data.put("expiryTime", expiryTime);
+            firestore.collection("password_reset_tokens").document(email).set(data).get();
+        } catch (InterruptedException | java.util.concurrent.ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public java.util.Map<String, Object> getResetToken(String email) {
+        try {
+            DocumentSnapshot document = firestore.collection("password_reset_tokens").document(email).get().get();
+            if (document.exists()) {
+                return document.getData();
+            }
+        } catch (InterruptedException | java.util.concurrent.ExecutionException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public void deleteResetToken(String email) {
+        try {
+            firestore.collection("password_reset_tokens").document(email).delete().get();
+        } catch (InterruptedException | java.util.concurrent.ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
 }

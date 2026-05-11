@@ -37,7 +37,7 @@ export const NotificationProvider = ({ children }) => {
       return [
         { id: Date.now().toString(), timestamp: notif.timestamp || Date.now(), read: false, ...notif },
         ...prev
-      ].slice(0, 50); // Keep only the latest 50 notifications
+      ].slice(0, 10); // Keep only the latest 10 notifications
     });
   };
 
@@ -46,13 +46,20 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const clearNotifications = () => {
+    console.log("Clearing all notifications");
+    localStorage.setItem('userNotifications', '[]');
     setNotifications([]);
+  };
+
+  const deleteNotification = (id) => {
+    console.log("Deleting notification", id);
+    setNotifications((prev) => prev.filter(n => n.id !== id));
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, addNotification, markAllAsRead, clearNotifications }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, addNotification, markAllAsRead, clearNotifications, deleteNotification }}>
       {children}
     </NotificationContext.Provider>
   );

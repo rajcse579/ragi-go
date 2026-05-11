@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
+import toast from 'react-hot-toast';
 
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
@@ -24,7 +25,7 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!identifier || !password) {
-      alert('Please enter your email/phone and password');
+      toast.error('Please enter your email/phone and password');
       return;
     }
 
@@ -34,6 +35,7 @@ export default function Login() {
       const user = response.data;
       
       // Store user info
+      if (user.token) localStorage.setItem('token', user.token);
       localStorage.setItem('userEmail', user.email);
       localStorage.setItem('userName', user.name);
       localStorage.setItem('userPhone', user.phone);
@@ -48,7 +50,7 @@ export default function Login() {
       }
     } catch (error) {
       console.error("Login error", error);
-      alert(error.response?.data || 'Invalid credentials');
+      toast.error(error.response?.data || 'Invalid credentials');
     } finally {
       setLoading(false);
     }
@@ -89,6 +91,9 @@ export default function Login() {
               className="input-field"
               style={{ marginBottom: '20px' }}
             />
+          </div>
+          <div style={{ textAlign: 'right', marginTop: '-15px', marginBottom: '15px' }}>
+            <Link to="/forgot-password" style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 600 }}>Forgot Password?</Link>
           </div>
           <button
             type="submit"

@@ -4,6 +4,7 @@ import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
 import { useCart } from '../context/CartContext';
 import { hapticSuccess } from '../utils/haptics';
+import toast from 'react-hot-toast';
 
 export default function Payment() {
   const { cart, cartTotal, clearCart } = useCart();
@@ -62,7 +63,7 @@ export default function Payment() {
       })
       .catch(err => {
         console.error("Error placing order", err);
-        alert('Failed to place order.');
+        toast.error('Failed to place order.');
         setLoading(false);
       });
   };

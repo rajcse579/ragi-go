@@ -4,6 +4,7 @@ import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
 import { useCart } from '../context/CartContext';
 import { hapticSuccess } from '../utils/haptics';
+import toast from 'react-hot-toast';
 
 export default function Checkout() {
   const { cartTotal } = useCart();
@@ -19,16 +20,16 @@ export default function Checkout() {
 
   const handleNext = () => {
     if (cartTotal === 0) {
-      alert("Your cart is empty. Please add some items before checking out.");
+      toast.error("Your cart is empty. Please add some items before checking out.");
       navigate('/menu');
       return;
     }
     if (!name || !address || !phone) {
-      alert("Please enter name, phone and address");
+      toast.error("Please enter name, phone and address");
       return;
     }
     if (!gpsLocation) {
-      alert("Please capture your current location using the 'Use Current Location' button before proceeding.");
+      toast.error("Please capture your current location using the 'Use Current Location' button before proceeding.");
       return;
     }
     navigate('/payment', { state: { name, phone, address, gpsLocation } });
@@ -55,7 +56,7 @@ export default function Checkout() {
                 value={name} 
                 onChange={(e) => setName(e.target.value)} 
                 className="input-field" 
-                placeholder="e.g. Rajesh Kumar"
+                placeholder="e.g. John Doe"
               />
             </div>
 
@@ -66,7 +67,7 @@ export default function Checkout() {
                 value={phone} 
                 onChange={(e) => setPhone(e.target.value)} 
                 className="input-field" 
-                placeholder="e.g. 79898000390"
+                placeholder="e.g. 9876543210"
               />
             </div>
 
@@ -95,12 +96,12 @@ export default function Checkout() {
                         setIsProcessing(false);
                       },
                       (err) => {
-                        alert("Could not automatically detect your location.");
+                        toast.error("Could not automatically detect your location.");
                         setIsProcessing(false);
                       }
                     );
                   } else {
-                    alert("Location services are not supported by your browser");
+                    toast.error("Location services are not supported by your browser");
                   }
                 }}
                 style={{ marginTop: '10px', width: '100%', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: gpsLocation ? '#e8f5e9' : '#f1f1f6', color: gpsLocation ? '#2e7d32' : 'var(--text-main)', border: gpsLocation ? '1px solid #c8e6c9' : '1px solid #e9e9eb', borderRadius: '10px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}

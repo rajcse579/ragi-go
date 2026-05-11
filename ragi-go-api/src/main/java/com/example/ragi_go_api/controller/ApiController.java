@@ -8,8 +8,10 @@ import com.example.ragi_go_api.service.TelegramService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @RestController
 @RequestMapping("/api")
@@ -29,6 +31,8 @@ public class ApiController {
 
     @Autowired
     private com.example.ragi_go_api.repository.UserRepository userRepo;
+
+    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     // --- HEALTH / KEEP ALIVE ---
     @GetMapping("/ping")
@@ -91,6 +95,15 @@ public class ApiController {
         return orderRepo.findByPhoneOrderByTimestampDesc(phone);
     }
 
+    @GetMapping("/orders/stream")
+    public SseEmitter streamOrders() {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        emitters.add(emitter);
+        emitter.onCompletion(() -> emitters.remove(emitter));
+        emitter.onTimeout(() -> emitters.remove(emitter));
+        return emitter;
+    }
+
     @PostMapping("/orders")
     public AppOrder placeOrder(@RequestBody AppOrder order) {
         order.setStatus("Pending");
@@ -98,6 +111,9 @@ public class ApiController {
         
         // Send Telegram notification to admin
         telegramService.sendOrderNotification(savedOrder);
+        
+        // Notify SSE subscribers
+        notifyOrderUpdate(savedOrder);
         
         return savedOrder;
     }
@@ -108,8 +124,12 @@ public class ApiController {
         if (order == null) return ResponseEntity.notFound().build();
         
         order.setStatus(payload.get("status"));
-        orderRepo.save(order);
-        return ResponseEntity.ok(order);
+        AppOrder savedOrder = orderRepo.save(order);
+        
+        // Notify SSE subscribers
+        notifyOrderUpdate(savedOrder);
+        
+        return ResponseEntity.ok(savedOrder);
     }
 
     @PutMapping("/orders/{id}/assign")
@@ -118,8 +138,12 @@ public class ApiController {
         if (order == null) return ResponseEntity.notFound().build();
         
         order.setAssignedTo(payload.get("assignedTo"));
-        orderRepo.save(order);
-        return ResponseEntity.ok(order);
+        AppOrder savedOrder = orderRepo.save(order);
+        
+        // Notify SSE subscribers
+        notifyOrderUpdate(savedOrder);
+        
+        return ResponseEntity.ok(savedOrder);
     }
 
     @GetMapping("/orders/assigned/{phone}")
@@ -130,5 +154,15 @@ public class ApiController {
     @GetMapping("/delivery-guys")
     public List<com.example.ragi_go_api.model.User> getDeliveryGuys() {
         return userRepo.findByRole("DELIVERY");
+    }
+
+    private void notifyOrderUpdate(AppOrder order) {
+        for (SseEmitter emitter : emitters) {
+            try {
+                emitter.send(order);
+            } catch (Exception e) {
+                emitters.remove(emitter);
+            }
+        }
     }
 }

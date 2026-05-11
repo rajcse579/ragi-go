@@ -116,7 +116,10 @@ async function deploy() {
         spec: {
           template: {
             spec: {
-              containers: [{ image: `gcr.io/${projectId}/${serviceName}` }],
+              containers: [{ 
+                image: `gcr.io/${projectId}/${serviceName}`,
+                env: [{ name: 'DEPLOY_TIMESTAMP', value: new Date().toISOString() }]
+              }],
             },
           },
         },
@@ -135,7 +138,10 @@ async function deploy() {
           spec: {
             template: {
               spec: {
-                containers: [{ image: `gcr.io/${projectId}/${serviceName}` }],
+                containers: [{ 
+                  image: `gcr.io/${projectId}/${serviceName}`,
+                  env: [{ name: 'DEPLOY_TIMESTAMP', value: new Date().toISOString() }]
+                }],
               },
             },
           },

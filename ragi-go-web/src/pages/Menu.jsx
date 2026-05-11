@@ -14,7 +14,32 @@ export default function Menu() {
   const { unreadCount } = useNotifications();
   const [cartAnimation, setCartAnimation] = useState(false);
   const [logoTaps, setLogoTaps] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientY);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientY);
+  };
+
+  const onTouchEnd = (e) => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchEnd - touchStart;
+    const isDownSwipe = distance > 70;
+
+    if (isDownSwipe && e.currentTarget.scrollTop === 0) {
+      setRefreshing(true);
+      setTimeout(() => setRefreshing(false), 1500);
+    }
+  };
 
   const [isShopOpen, setIsShopOpen] = useState(true);
 
@@ -22,7 +47,7 @@ export default function Menu() {
     const newTaps = logoTaps + 1;
     setLogoTaps(newTaps);
     const userRole = localStorage.getItem('userRole');
-    
+
     if (newTaps >= 2) {
       if (userRole === 'ADMIN') {
         setLogoTaps(0);
@@ -51,7 +76,7 @@ export default function Menu() {
             setIsShopOpen(docSnap.data().isOpen);
           }
         });
-        
+
         // Save the unsub function to a ref or just let it live for the session since it's a root component
       });
     });
@@ -101,14 +126,25 @@ export default function Menu() {
   }, []);
 
   return (
-    <div className="page-container">
-      
+    <div
+      className="page-container"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ overflowY: 'auto' }}
+    >
+      {refreshing && (
+        <div style={{ textAlign: 'center', padding: '10px', background: 'var(--primary-light)', color: 'var(--primary)', fontSize: '12px', fontWeight: 800, position: 'sticky', top: 0, zIndex: 100 }}>
+          <i className='bx bx-loader-alt bx-spin' style={{ marginRight: '5px' }}></i> REFRESHING...
+        </div>
+      )}
+
       {/* SHOP CLOSED BANNER */}
       {!isShopOpen && (
         <div style={{
-          background: '#ff4d4d', color: '#fff', padding: '12px 20px', 
-          textAlign: 'center', fontSize: '13px', fontWeight: 800, 
-          position: 'sticky', top: 0, zIndex: 100, display: 'flex', 
+          background: '#ff4d4d', color: '#fff', padding: '12px 20px',
+          textAlign: 'center', fontSize: '13px', fontWeight: 800,
+          position: 'sticky', top: 0, zIndex: 100, display: 'flex',
           alignItems: 'center', justifyContent: 'center', gap: '8px',
           boxShadow: '0 4px 10px rgba(255, 77, 77, 0.3)'
         }}>
@@ -119,13 +155,13 @@ export default function Menu() {
 
       {/* Simplified Header with Logout */}
       <div className="header-bar">
-        <h2 
+        <h2
           onClick={handleLogoTap}
           style={{ fontSize: '18px', margin: 0, fontWeight: 800, color: 'var(--primary)', cursor: 'pointer' }}
         >
           Raagi GO
         </h2>
-        
+
         <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigate('/notifications')}>
           <i className='bx bx-bell' style={{ fontSize: '24px', color: 'var(--text-main)' }}></i>
           {unreadCount > 0 && (
@@ -159,9 +195,70 @@ export default function Menu() {
         </div>
       </div>
 
-      <div className="location-service-banner">
-        <i className='bx bxs-map-pin'></i>
-        <p>Now serving exclusively in <span>Amadalavalasa</span><br/><span style={{ fontSize: '11px', color: 'var(--text-light)', fontWeight: 600 }}>Operating Hours: 7:00 AM - 9:00 AM</span></p>
+      <div className="location-service-banner" style={{ 
+        background: '#ffffff', 
+        padding: '14px 20px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '12px', 
+        margin: '0 20px 20px', 
+        borderRadius: '16px', 
+        border: '1px solid #e9e9eb', 
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        <i className='bx bxs-map-pin' style={{ color: 'var(--primary)', fontSize: '20px' }}></i>
+        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-main)', fontWeight: 600 }}>
+          Now serving exclusively in <span style={{ color: 'var(--primary)', fontWeight: 800 }}>Amadalavalasa</span><br /><span style={{ fontSize: '11px', color: 'var(--text-light)', fontWeight: 600 }}>Operating Hours: 7:00 AM - 9:00 AM</span>
+        </p>
+      </div>
+
+      <div className="search-and-filter" style={{ padding: '0 20px', marginBottom: '20px' }}>
+        <div style={{ position: 'relative', marginBottom: '16px' }}>
+          <i className='bx bx-search' style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)', fontSize: '20px' }}></i>
+          <input
+            type="text"
+            placeholder="Search for healthy food..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '14px 14px 14px 48px',
+              borderRadius: '16px',
+              border: 'none',
+              outline: 'none',
+              fontSize: '14px',
+              fontFamily: 'inherit',
+              background: '#f1f1f6',
+              color: 'var(--text-main)',
+              transition: 'all 0.2s'
+            }}
+            onFocus={(e) => e.target.style.background = '#e9e9f0'}
+            onBlur={(e) => e.target.style.background = '#f1f1f6'}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }} className="no-scrollbar">
+          {["All", "Millet", "Tiffin", "Drinks"].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '25px',
+                border: 'none',
+                background: selectedCategory === cat ? 'var(--primary)' : '#f1f1f6',
+                color: selectedCategory === cat ? '#fff' : 'var(--text-secondary)',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s',
+                boxShadow: selectedCategory === cat ? '0 4px 12px rgba(252, 128, 25, 0.25)' : 'none'
+              }}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="section-title">Popular Items</div>
@@ -182,11 +279,19 @@ export default function Menu() {
             </div>
           ))
         ) : (
-          items.map((item, index) => (
-            <div 
-              key={item.id} 
-              className={`menu-card fade-in-up ${!item.available ? 'is-out-of-stock' : ''}`} 
-              style={{ 
+          items.filter(item => {
+            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesCategory = selectedCategory === 'All' ||
+              (selectedCategory === 'Millet' && item.name.toLowerCase().includes('millet')) ||
+              (selectedCategory === 'Tiffin' && (item.name.toLowerCase().includes('idli') || item.name.toLowerCase().includes('dosa'))) ||
+              (selectedCategory === 'Drinks' && (item.name.toLowerCase().includes('drink') || item.name.toLowerCase().includes('juice')));
+
+            return matchesSearch && matchesCategory;
+          }).map((item, index) => (
+            <div
+              key={item.id}
+              className={`menu-card fade-in-up ${!item.available ? 'is-out-of-stock' : ''}`}
+              style={{
                 animationDelay: `${index * 0.1}s`,
                 opacity: item.available ? 1 : 0.6,
                 pointerEvents: item.available ? 'auto' : 'none',
@@ -204,8 +309,8 @@ export default function Menu() {
               </div>
               <div className="menu-card-right">
                 <div className="sprite-container" style={{ position: 'relative' }}>
-                  <ProgressiveImage 
-                    src={item.imageUrl} 
+                  <ProgressiveImage
+                    src={item.imageUrl}
                     alt={item.name}
                     className="menu-sprite"
                   />

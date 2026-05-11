@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
+import toast from 'react-hot-toast';
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -28,7 +29,7 @@ export default function Signup() {
   const handleSignup = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-      alert('Please fill in all fields');
+      toast.error('Please fill in all fields');
       return;
     }
 
@@ -49,7 +50,7 @@ export default function Signup() {
       }, 2000);
     } catch (error) {
       console.error("Signup error", error);
-      alert(error.response?.data || 'Signup failed. Please try again.');
+      toast.error(error.response?.data || 'Signup failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,7 @@ export default function Signup() {
             <input
               type="text"
               name="name"
-              placeholder="Rajesh Perla"
+              placeholder="e.g. John Doe"
               value={formData.name}
               onChange={handleChange}
               className="input-field"
@@ -81,7 +82,7 @@ export default function Signup() {
             <input
               type="email"
               name="email"
-              placeholder="rajesh857850@gmail.com"
+              placeholder="e.g. john.doe@example.com"
               value={formData.email}
               onChange={handleChange}
               className="input-field"
@@ -93,7 +94,7 @@ export default function Signup() {
             <input
               type="tel"
               name="phone"
-              placeholder="79898000390"
+              placeholder="e.g. 9876543210"
               value={formData.phone}
               onChange={handleChange}
               className="input-field"
