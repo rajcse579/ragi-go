@@ -146,6 +146,12 @@ public class ApiController {
         return ResponseEntity.ok(savedOrder);
     }
 
+    @DeleteMapping("/orders/{id}")
+    public ResponseEntity<Void> deleteOrder(@PathVariable String id) {
+        orderRepo.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/orders/assigned/{phone}")
     public List<AppOrder> getAssignedOrders(@PathVariable String phone) {
         return orderRepo.findByAssignedToOrderByTimestampDesc(phone);

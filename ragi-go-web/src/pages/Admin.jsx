@@ -23,6 +23,8 @@ export default function Admin() {
   const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
   const [promoSuccess, setPromoSuccess] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [orderFilter, setOrderFilter] = useState('All');
   const navigate = useNavigate();
 
   const [isShopOpen, setIsShopOpen] = useState(true);
@@ -34,7 +36,7 @@ export default function Admin() {
     fetchShopStatus();
     fetchMenu();
     fetchDeliveryGuys();
-    
+
     // Real-time Firestore Listener for Orders
     let unsubscribe;
     import('firebase/firestore').then(({ collection, onSnapshot }) => {
@@ -153,14 +155,14 @@ export default function Admin() {
     try {
       const { collection, addDoc } = await import('firebase/firestore');
       const { db } = await import('../firebase');
-      
+
       await addDoc(collection(db, 'broadcasts'), {
         title: promoForm.title,
         body: promoForm.body,
         timestamp: Date.now(),
         type: 'promotional'
       });
-      
+
       setPromoForm({ title: '', body: '' });
       setPromoSuccess(true);
       setTimeout(() => setPromoSuccess(false), 4000);
@@ -173,11 +175,38 @@ export default function Admin() {
   };
 
   const updateStatus = (orderId, targetStatus) => {
+    // Optimistic update for instant feedback
+    setOrders(prevOrders => 
+      prevOrders.map(order => 
+        order.id === orderId ? { ...order, status: targetStatus } : order
+      )
+    );
+
     axios.put(`${API_BASE_URL}/orders/${orderId}/status`, { status: targetStatus })
       .catch(err => {
         console.error("Status update failed", err);
         toast.error('Failed to update status');
+        // If it fails, the real-time listener will eventually revert it to the server state.
       });
+  };
+
+  const deleteOrder = (orderId) => {
+    setOrderToDelete(orderId);
+  };
+
+  const confirmDeleteOrder = () => {
+    if (orderToDelete) {
+      axios.delete(`${API_BASE_URL}/orders/${orderToDelete}`)
+        .then(() => {
+          toast.success('Order deleted successfully');
+          setOrderToDelete(null);
+        })
+        .catch(err => {
+          console.error("Delete failed", err);
+          toast.error('Failed to delete order');
+          setOrderToDelete(null);
+        });
+    }
   };
 
   const assignOrder = (orderId, deliveryGuyPhone) => {
@@ -306,17 +335,37 @@ export default function Admin() {
             )}
 
             {/* Stats Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-              <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', border: '1px solid #e9e9eb' }}>
+            <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', marginBottom: '24px', paddingBottom: '5px' }}>
+              <div 
+                onClick={() => setOrderFilter('All')}
+                style={{ 
+                  background: orderFilter === 'All' ? 'var(--primary-light)' : '#fff', 
+                  padding: '16px', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', border: '1px solid ' + (orderFilter === 'All' ? 'var(--primary)' : '#e9e9eb'),
+                  cursor: 'pointer', minWidth: '120px', flexShrink: 0
+                }}
+              >
                 <div style={{ color: 'var(--text-light)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>Total Orders</div>
                 <div style={{ fontSize: '24px', fontWeight: 800 }}>{orders.length}</div>
               </div>
-              <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', border: '1px solid #e9e9eb' }}>
-                <div style={{ color: 'var(--text-light)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>Pending</div>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)' }}>
-                  {orders.filter(o => o.status === 'Pending').length}
-                </div>
-              </div>
+
+              {['Pending', 'Accepted', 'Out for Delivery', 'Delivered', 'Cancelled'].map(status => {
+                const count = orders.filter(o => o.status === status).length;
+                const isSelected = orderFilter === status;
+                return (
+                  <div 
+                    key={status}
+                    onClick={() => setOrderFilter(status)}
+                    style={{ 
+                      background: isSelected ? 'var(--primary-light)' : '#fff', 
+                      padding: '16px', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', border: '1px solid ' + (isSelected ? 'var(--primary)' : '#e9e9eb'),
+                      cursor: 'pointer', minWidth: '120px', flexShrink: 0
+                    }}
+                  >
+                    <div style={{ color: 'var(--text-light)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>{status}</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, color: status === 'Pending' ? 'var(--primary)' : 'inherit' }}>{count}</div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Delivery Stats removed from here */}
@@ -326,32 +375,54 @@ export default function Admin() {
             ) : orders.length === 0 ? (
               <div style={{ textAlign: 'center', marginTop: '40px' }}><p>No active orders</p></div>
             ) : (
-              orders.map((order, index) => (
-                <div key={order.id} className="fade-in-up" style={{
+              orders
+                .filter(order => orderFilter === 'All' || order.status === orderFilter)
+                .map((order, index) => (
+                  <div key={order.id} className="fade-in-up" style={{
                   background: '#fff', padding: '20px', borderRadius: '12px', marginBottom: '16px',
                   boxShadow: 'var(--shadow-sm)', border: '1px solid #e9e9eb', animationDelay: `${index * 0.1}s`
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #f1f1f6' }}>
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 800 }}>Order #{order.id}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 800 }}>Order #{order.id.slice(-5)}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>{order.name} • {order.phone}</div>
                     </div>
-                    <div style={{ fontSize: '12px', fontWeight: 800 }}>₹{order.total}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 800 }}>₹{order.total}</div>
+                      <button 
+                        onClick={() => deleteOrder(order.id)} 
+                        style={{ 
+                          background: '#f1f1f6', 
+                          border: 'none', 
+                          padding: '6px', 
+                          borderRadius: '6px', 
+                          cursor: 'pointer',
+                          color: 'var(--text-light)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <i className='bx bx-trash' style={{ fontSize: '14px' }}></i>
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ marginBottom: '16px' }}>
+                  <div style={{ marginBottom: '16px', background: '#fafafa', padding: '12px', borderRadius: '8px', border: '1px solid #f1f1f6' }}>
                     {order.items.map((item, idx) => (
-                      <div key={idx} style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{item.quantity} x {item.name}</div>
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: idx === order.items.length - 1 ? 0 : '6px' }}>
+                        <span><span style={{ fontWeight: 800, color: 'var(--text-main)' }}>{item.quantity}</span> x {item.name}</span>
+                      </div>
                     ))}
                   </div>
-                  <div 
+                  <div
                     onClick={() => {
                       const query = order.gpsLocation || order.address;
                       if (query) {
                         window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
                       }
                     }}
-                    style={{ 
-                      fontSize: '12px', color: 'var(--text-light)', marginBottom: '16px', padding: '10px', 
+                    style={{
+                      fontSize: '12px', color: 'var(--text-light)', marginBottom: '16px', padding: '10px',
                       background: '#f8f8f8', borderRadius: '8px',
                       cursor: 'pointer',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center'
@@ -368,50 +439,58 @@ export default function Admin() {
                         </div>
                       )}
                     </div>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: '10px', flexShrink: 0 }}>
+                    <span style={{ 
+                      fontSize: '11px', fontWeight: 800, color: 'var(--primary)', 
+                      display: 'flex', alignItems: 'center', gap: '3px', marginLeft: '10px', flexShrink: 0,
+                      background: 'var(--primary-light)', padding: '4px 8px', borderRadius: '4px'
+                    }}>
                       <i className='bx bx-navigation' style={{ fontSize: '14px' }}></i> NAVIGATE
                     </span>
                   </div>
-                  
-                  {/* Assign Delivery Guy */}
-                  <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)' }}>ASSIGN TO:</label>
-                    <select
-                      value={order.assignedTo || ''}
-                      onChange={(e) => assignOrder(order.id, e.target.value)}
-                      disabled={order.status === 'Pending'}
-                      style={{ 
-                        padding: '8px', 
-                        borderRadius: '8px', 
-                        border: '1px solid #e9e9eb', 
-                        fontSize: '12px', 
-                        flex: 1, 
-                        outline: 'none', 
-                        background: order.status === 'Pending' ? '#e9e9eb' : '#f8f8f8',
-                        cursor: order.status === 'Pending' ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      <option value="">Unassigned</option>
-                      {deliveryGuys.map(guy => (
-                        <option key={guy.phone} value={guy.phone}>{guy.name} ({guy.phone})</option>
-                      ))}
-                    </select>
-                  </div>
 
-                  <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '5px' }}>
-                    {STATUS_OPTIONS.map(status => (
-                      <button
-                        key={status} onClick={() => updateStatus(order.id, status)}
+                  {/* Management Section */}
+                  <div style={{ background: '#f5f5f7', padding: '12px', borderRadius: '12px', marginTop: '16px' }}>
+                    {/* Assign Delivery Guy */}
+                    <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', flexShrink: 0 }}>ASSIGN TO:</label>
+                      <select
+                        value={order.assignedTo || ''}
+                        onChange={(e) => assignOrder(order.id, e.target.value)}
+                        disabled={order.status === 'Pending'}
                         style={{
-                          padding: '6px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: 800, cursor: 'pointer', flex: 1,
-                          border: '1px solid ' + (order.status === status ? getStatusColor(status) : '#e9e9eb'),
-                          background: order.status === status ? getStatusColor(status) : '#fff',
-                          color: order.status === status ? '#fff' : 'var(--text-secondary)'
+                          padding: '8px',
+                          borderRadius: '8px',
+                          border: '1px solid #e9e9eb',
+                          fontSize: '12px',
+                          flex: 1,
+                          outline: 'none',
+                          background: order.status === 'Pending' ? '#e9e9eb' : '#fff',
+                          cursor: order.status === 'Pending' ? 'not-allowed' : 'pointer'
                         }}
-                      >{status}</button>
-                    ))}
+                      >
+                        <option value="">Unassigned</option>
+                        {deliveryGuys.map(guy => (
+                          <option key={guy.phone} value={guy.phone}>{guy.name} ({guy.phone})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '2px', overflowX: 'auto' }}>
+                      {STATUS_OPTIONS.map(status => (
+                        <button
+                          key={status} onClick={() => updateStatus(order.id, status)}
+                          style={{
+                            padding: '6px 4px', borderRadius: '20px', fontSize: '9px', fontWeight: 800, cursor: 'pointer', flex: 1,
+                            border: '1px solid ' + (order.status === status ? getStatusColor(status) : '#e9e9eb'),
+                            background: order.status === status ? getStatusColor(status) : '#fff',
+                            color: order.status === status ? '#fff' : 'var(--text-secondary)',
+                            textAlign: 'center'
+                          }}
+                        >{status}</button>
+                      ))}
+                    </div>
+                    </div>
                   </div>
-                </div>
               ))
             )}
           </>
@@ -457,7 +536,7 @@ export default function Admin() {
         ) : activeTab === 'notifications' ? (
           <div className="notifications-management">
             <h3 style={{ margin: '0 0 20px 0', fontSize: '16px' }}>Send App Notification</h3>
-            
+
             {promoSuccess && (
               <div className="fade-in-up" style={{ background: '#e8f5e9', color: '#2e7d32', padding: '12px 16px', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 800 }}>
                 <i className='bx bx-check-circle' style={{ fontSize: '20px' }}></i>
@@ -485,8 +564,8 @@ export default function Admin() {
                     className="input-field" style={{ width: '100%', resize: 'none', fontSize: '14px' }}
                   />
                 </div>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={isSendingPromo}
                   style={{ width: '100%', background: 'var(--primary)', color: '#fff', border: 'none', padding: '16px', borderRadius: '12px', fontWeight: 800, fontSize: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', opacity: isSendingPromo ? 0.7 : 1 }}
                 >
@@ -502,7 +581,7 @@ export default function Admin() {
         ) : activeTab === 'delivery' ? (
           <div className="delivery-management">
             <h3 style={{ margin: '0 0 20px 0', fontSize: '16px' }}>Delivery Performance</h3>
-            
+
             <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', boxShadow: 'var(--shadow-sm)', border: '1px solid #e9e9eb' }}>
               {deliveryGuys.length === 0 ? (
                 <div style={{ fontSize: '12px', color: 'var(--text-light)' }}>No delivery guys registered</div>
@@ -543,6 +622,25 @@ export default function Admin() {
             <div style={{ display: 'flex', gap: '12px' }}>
               <button onClick={() => setItemToDelete(null)} style={{ flex: 1, background: '#f1f1f6', color: 'var(--text-main)', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}>CANCEL</button>
               <button onClick={confirmDeleteMenuItem} style={{ flex: 1, background: '#ff4d4d', color: '#fff', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}>DELETE</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Order Confirm Modal */}
+      {orderToDelete && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="fade-in-up" style={{ background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '350px', padding: '24px', textAlign: 'center' }}>
+            <div style={{ width: '60px', height: '60px', background: '#fff5f5', color: '#ff4d4d', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <i className='bx bx-trash' style={{ fontSize: '32px' }}></i>
+            </div>
+            <h3 style={{ marginTop: 0, marginBottom: '8px', fontSize: '18px' }}>Delete Order?</h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: 1.5 }}>
+              Are you sure you want to permanently delete this order? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setOrderToDelete(null)} style={{ flex: 1, background: '#f1f1f6', color: 'var(--text-main)', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}>CANCEL</button>
+              <button onClick={confirmDeleteOrder} style={{ flex: 1, background: '#ff4d4d', color: '#fff', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}>DELETE</button>
             </div>
           </div>
         </div>

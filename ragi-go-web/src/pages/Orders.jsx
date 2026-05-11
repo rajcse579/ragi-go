@@ -184,7 +184,7 @@ export default function Orders() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '11px', color: getStatusColor(order.status), fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>{order.status}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>ID #{order.id}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>ID #{order.id.slice(-5)}</div>
                 </div>
               </div>
 

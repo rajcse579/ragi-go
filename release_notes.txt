@@ -1,0 +1,6 @@
+Release Notes - Version 1.7
+- Added all status cards (Accepted, Out for Delivery, Delivered, Cancelled) and filtering functionality in Admin Dashboard.
+- Added notification for cancelled orders.
+- Improved order ID display to use last 5 characters consistently.
+- Optimized UI with optimistic updates for status changes.
+- Design improvements for order cards (receipt style items, pill buttons).

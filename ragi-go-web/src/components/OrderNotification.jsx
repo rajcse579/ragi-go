@@ -81,6 +81,9 @@ export default function OrderNotification() {
               } else if (status === 'Delivered') {
                 title = 'Order Delivered! 🎉';
                 body = `Your order #${order.id.slice(-5)} has been successfully delivered. Enjoy your meal!`;
+              } else if (status === 'Cancelled') {
+                title = 'Order Cancelled ❌';
+                body = `Sorry for the inconvenience, your order #${order.id.slice(-5)} has been cancelled by the restaurant.`;
               }
 
               if (title && body) {

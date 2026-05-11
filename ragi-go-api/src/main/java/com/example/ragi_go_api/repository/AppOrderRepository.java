@@ -114,4 +114,12 @@ public class AppOrderRepository {
         }
         return null;
     }
+
+    public void deleteById(String id) {
+        try {
+            firestore.collection(COLLECTION_NAME).document(id).delete().get();
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("Error deleting order by ID {}: {}", id, e.getMessage(), e);
+        }
+    }
 }
