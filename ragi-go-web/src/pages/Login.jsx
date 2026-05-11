@@ -16,6 +16,8 @@ export default function Login() {
     if (userEmail) {
       if (userRole === 'ADMIN') {
         navigate('/admin');
+      } else if (userRole === 'DELIVERY') {
+        navigate('/delivery');
       } else {
         navigate('/menu');
       }
@@ -45,6 +47,8 @@ export default function Login() {
       
       if (user.role === 'ADMIN') {
         navigate('/admin');
+      } else if (user.role === 'DELIVERY') {
+        navigate('/delivery');
       } else {
         navigate('/menu');
       }

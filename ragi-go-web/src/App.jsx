@@ -71,17 +71,17 @@ function App() {
             <Routes>
               <Route path="/" element={
                 localStorage.getItem('userEmail') 
-                  ? (localStorage.getItem('userRole') === 'ADMIN' ? <Navigate to="/admin" /> : <Navigate to="/menu" />)
+                  ? (localStorage.getItem('userRole') === 'ADMIN' ? <Navigate to="/admin" /> : (localStorage.getItem('userRole') === 'DELIVERY' ? <Navigate to="/delivery" /> : <Navigate to="/menu" />))
                   : <Navigate to="/login" />
               } />
               <Route path="/login" element={
                 localStorage.getItem('userEmail')
-                  ? (localStorage.getItem('userRole') === 'ADMIN' ? <Navigate to="/admin" /> : <Navigate to="/menu" />)
+                  ? (localStorage.getItem('userRole') === 'ADMIN' ? <Navigate to="/admin" /> : (localStorage.getItem('userRole') === 'DELIVERY' ? <Navigate to="/delivery" /> : <Navigate to="/menu" />))
                   : <Login />
               } />
               <Route path="/signup" element={
                 localStorage.getItem('userEmail')
-                  ? (localStorage.getItem('userRole') === 'ADMIN' ? <Navigate to="/admin" /> : <Navigate to="/menu" />)
+                  ? (localStorage.getItem('userRole') === 'ADMIN' ? <Navigate to="/admin" /> : (localStorage.getItem('userRole') === 'DELIVERY' ? <Navigate to="/delivery" /> : <Navigate to="/menu" />))
                   : <Signup />
               } />
               <Route path="/forgot-password" element={<ForgotPassword />} />

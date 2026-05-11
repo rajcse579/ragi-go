@@ -32,18 +32,45 @@ export default function Admin() {
 
   useEffect(() => {
     fetchShopStatus();
-    fetchOrders();
     fetchMenu();
     fetchDeliveryGuys();
     
-    // Live Order Tracking with SSE (Instead of Polling)
-    const eventSource = new EventSource(`${API_BASE_URL}/orders/stream`);
-    eventSource.onmessage = (event) => {
-      fetchOrders();
+    // Real-time Firestore Listener for Orders
+    let unsubscribe;
+    import('firebase/firestore').then(({ collection, onSnapshot }) => {
+      import('../firebase').then(({ db }) => {
+        const ordersQuery = collection(db, 'orders');
+        unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+          const fetchedOrders = [];
+          snapshot.forEach(doc => {
+            fetchedOrders.push({ id: doc.id, ...doc.data() });
+          });
+
+          // Sort latest first
+          const sorted = fetchedOrders.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+          // Trigger notification if order count increases
+          setOrders(prevOrders => {
+            if (sorted.length > prevOrders.length && prevOrders.length !== 0) {
+              notificationSound.play().catch(e => console.log("Sound play blocked by browser"));
+              setNewOrderAlert(true);
+              setTimeout(() => setNewOrderAlert(false), 8000);
+            }
+            return sorted;
+          });
+
+          setLoading(false);
+        }, (error) => {
+          console.error("Firestore listen error", error);
+          setLoading(false);
+        });
+      });
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
     };
-    
-    return () => eventSource.close();
-  }, [lastOrderCount]);
+  }, []);
 
   const fetchShopStatus = () => {
     axios.get(`${API_BASE_URL}/settings/status`)
@@ -66,29 +93,7 @@ export default function Admin() {
       });
   };
 
-  const fetchOrders = () => {
-    axios.get(`${API_BASE_URL}/orders`)
-      .then(res => {
-        const data = res.data || [];
-        // Show latest first by timestamp
-        const sorted = data.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-        // Trigger notification if order count increases
-        if (data.length > lastOrderCount && lastOrderCount !== 0) {
-          notificationSound.play().catch(e => console.log("Sound play blocked by browser"));
-          setNewOrderAlert(true);
-          setTimeout(() => setNewOrderAlert(false), 8000);
-        }
-
-        setOrders(sorted);
-        if (data.length > 0) setLastOrderCount(data.length);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error fetching orders", err);
-        setLoading(false);
-      });
-  };
+  // fetchOrders is now handled by Firestore listener in useEffect
 
   const fetchMenu = () => {
     axios.get(`${API_BASE_URL}/menu/all`)
@@ -169,9 +174,6 @@ export default function Admin() {
 
   const updateStatus = (orderId, targetStatus) => {
     axios.put(`${API_BASE_URL}/orders/${orderId}/status`, { status: targetStatus })
-      .then(() => {
-        fetchOrders(); // Refresh list
-      })
       .catch(err => {
         console.error("Status update failed", err);
         toast.error('Failed to update status');
@@ -180,9 +182,6 @@ export default function Admin() {
 
   const assignOrder = (orderId, deliveryGuyPhone) => {
     axios.put(`${API_BASE_URL}/orders/${orderId}/assign`, { assignedTo: deliveryGuyPhone })
-      .then(() => {
-        fetchOrders(); // Refresh list
-      })
       .catch(err => {
         console.error("Assign failed", err);
         toast.error('Failed to assign order');

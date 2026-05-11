@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.HtmlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,17 +31,17 @@ public class TelegramService {
         String url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
 
         StringBuilder sb = new StringBuilder();
-        sb.append("📦 *New Order Received!*\n\n");
-        sb.append("*Order ID:* #").append(order.getId()).append("\n");
-        sb.append("*Customer:* ").append(order.getName()).append(" (+91 ").append(order.getPhone()).append(")\n");
-        sb.append("*Total:* ₹").append(order.getTotal()).append("\n");
-        sb.append("*Address:* ").append(order.getAddress()).append("\n");
+        sb.append("📦 <b>New Order Received!</b>\n\n");
+        sb.append("<b>Order ID:</b> #").append(HtmlUtils.htmlEscape(order.getId())).append("\n");
+        sb.append("<b>Customer:</b> ").append(HtmlUtils.htmlEscape(order.getName())).append(" (+91 ").append(HtmlUtils.htmlEscape(order.getPhone())).append(")\n");
+        sb.append("<b>Total:</b> ₹").append(order.getTotal()).append("\n");
+        sb.append("<b>Address:</b> ").append(HtmlUtils.htmlEscape(order.getAddress())).append("\n");
         if (order.getGpsLocation() != null && !order.getGpsLocation().isEmpty()) {
-            sb.append("*GPS Location:* [View on Maps](https://maps.google.com/?q=").append(order.getGpsLocation()).append(")\n");
+            sb.append("<b>GPS Location:</b> <a href=\"https://maps.google.com/?q=").append(HtmlUtils.htmlEscape(order.getGpsLocation())).append("\">View on Maps</a>\n");
         }
-        sb.append("\n*Items:*\n");
+        sb.append("\n<b>Items:</b>\n");
         order.getItems().forEach(item -> {
-            sb.append("• ").append(item.getQuantity()).append(" x ").append(item.getName()).append("\n");
+            sb.append("• ").append(item.getQuantity()).append(" x ").append(HtmlUtils.htmlEscape(item.getName())).append("\n");
         });
 
         String[] chatIds = adminChatId.split(",");
@@ -48,7 +49,7 @@ public class TelegramService {
             Map<String, Object> request = new HashMap<>();
             request.put("chat_id", chatId.trim());
             request.put("text", sb.toString());
-            request.put("parse_mode", "Markdown");
+            request.put("parse_mode", "HTML");
 
             try {
                 restTemplate.postForEntity(url, request, String.class);

@@ -17,8 +17,15 @@ export default function Signup() {
 
   React.useEffect(() => {
     const userEmail = localStorage.getItem('userEmail');
+    const userRole = localStorage.getItem('userRole');
     if (userEmail) {
-      navigate('/menu');
+      if (userRole === 'ADMIN') {
+        navigate('/admin');
+      } else if (userRole === 'DELIVERY') {
+        navigate('/delivery');
+      } else {
+        navigate('/menu');
+      }
     }
   }, [navigate]);
 
@@ -46,7 +53,14 @@ export default function Signup() {
       
       setShowSuccess(true);
       setTimeout(() => {
-        navigate('/menu');
+        const userRole = localStorage.getItem('userRole');
+        if (userRole === 'ADMIN') {
+          navigate('/admin');
+        } else if (userRole === 'DELIVERY') {
+          navigate('/delivery');
+        } else {
+          navigate('/menu');
+        }
       }, 2000);
     } catch (error) {
       console.error("Signup error", error);
