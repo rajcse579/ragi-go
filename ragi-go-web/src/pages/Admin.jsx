@@ -379,7 +379,17 @@ export default function Admin() {
                     <select
                       value={order.assignedTo || ''}
                       onChange={(e) => assignOrder(order.id, e.target.value)}
-                      style={{ padding: '8px', borderRadius: '8px', border: '1px solid #e9e9eb', fontSize: '12px', flex: 1, outline: 'none', background: '#f8f8f8' }}
+                      disabled={order.status === 'Pending'}
+                      style={{ 
+                        padding: '8px', 
+                        borderRadius: '8px', 
+                        border: '1px solid #e9e9eb', 
+                        fontSize: '12px', 
+                        flex: 1, 
+                        outline: 'none', 
+                        background: order.status === 'Pending' ? '#e9e9eb' : '#f8f8f8',
+                        cursor: order.status === 'Pending' ? 'not-allowed' : 'pointer'
+                      }}
                     >
                       <option value="">Unassigned</option>
                       {deliveryGuys.map(guy => (

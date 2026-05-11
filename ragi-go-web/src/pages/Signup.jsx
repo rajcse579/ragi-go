@@ -46,6 +46,7 @@ export default function Signup() {
       const user = response.data;
       
       // Auto-login after signup
+      if (user.token) localStorage.setItem('token', user.token);
       localStorage.setItem('userEmail', user.email);
       localStorage.setItem('userName', user.name);
       localStorage.setItem('userPhone', user.phone);

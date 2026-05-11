@@ -49,7 +49,20 @@ public class AuthController {
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         User savedUser = userRepo.save(user);
-        return ResponseEntity.ok(savedUser);
+        
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
+        final String jwt = jwtUtil.generateToken(userDetails);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", jwt);
+        response.put("email", savedUser.getEmail());
+        response.put("name", savedUser.getName());
+        response.put("phone", savedUser.getPhone());
+        response.put("role", savedUser.getRole());
+        response.put("address", savedUser.getAddress());
+        response.put("gpsLocation", savedUser.getGpsLocation());
+        
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")

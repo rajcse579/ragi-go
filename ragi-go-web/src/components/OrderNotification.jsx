@@ -1,31 +1,50 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { useNotifications } from '../context/NotificationContext';
 
 export default function OrderNotification() {
   const { addNotification } = useNotifications();
+  const [userPhone, setUserPhone] = useState(localStorage.getItem('userPhone'));
+
+  // 1. Request permissions and create channel once on mount
   useEffect(() => {
-    const userPhone = localStorage.getItem('userPhone');
-    const pageLoadTime = Date.now();
-    
-    // Request permissions for notifications first
     LocalNotifications.requestPermissions().then((result) => {
       if (result.display !== 'granted') {
         console.warn("User denied push notification permissions");
       }
     }).catch(err => console.warn("LocalNotifications requestPermissions failed", err));
 
-    // Create a channel for Android (Required for Android 8.0+)
     LocalNotifications.createChannel({
       id: 'orders',
       name: 'Order Updates',
       description: 'Notifications for order status updates',
-      importance: 5, // High importance (heads-up notification)
-      visibility: 1, // Public
+      importance: 5,
+      visibility: 1,
       vibration: true
     }).catch(err => console.error("Error creating notification channel", err));
+  }, []);
 
-    // If not logged in, don't set up listeners
+  // 2. Poll localStorage to detect login/logout
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentPhone = localStorage.getItem('userPhone');
+      if (currentPhone !== userPhone) {
+        setUserPhone(currentPhone);
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [userPhone]);
+
+  // 3. Set up listeners when userPhone is available
+  useEffect(() => {
+    const pageLoadTime = Date.now();
+    const lastChecked = localStorage.getItem('lastCheckedBroadcast') 
+      ? parseInt(localStorage.getItem('lastCheckedBroadcast')) 
+      : Date.now();
+    
+    // Update it for next time
+    localStorage.setItem('lastCheckedBroadcast', Date.now().toString());
+    
     if (!userPhone) return;
 
     let unsubscribeOrders;
@@ -115,8 +134,10 @@ export default function OrderNotification() {
                 }).catch(err => console.error("Error scheduling notification", err));
               }
 
-              // ALWAYS add to in-app history (duplicates handled in context)
-              addNotification({ title: promo.title, body: promo.body, status: 'Promo', orderId: change.doc.id, timestamp: promo.timestamp });
+              // Only add to history if it was sent after the user signed up or last checked
+              if (promo.timestamp > lastChecked) {
+                addNotification({ title: promo.title, body: promo.body, status: 'Promo', orderId: change.doc.id, timestamp: promo.timestamp });
+              }
             }
           });
         }, (error) => {
@@ -130,7 +151,7 @@ export default function OrderNotification() {
       if (unsubscribeOrders) unsubscribeOrders();
       if (unsubscribeBroadcasts) unsubscribeBroadcasts();
     };
-  }, []);
+  }, [userPhone]);
 
   // No longer rendering a visual DOM element since these are native push notifications
   return null;

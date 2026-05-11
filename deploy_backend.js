@@ -106,7 +106,21 @@ async function deploy() {
   });
 
   try {
-    // Attempt to update existing service
+    // Fetch existing service to preserve environment variables
+    console.log('Fetching existing service configuration...');
+    const existingService = await runRegional.namespaces.services.get({
+      name: `namespaces/${projectId}/services/${serviceName}`
+    });
+
+    const existingEnv = existingService.data.spec.template.spec.containers[0].env || [];
+    
+    // Filter out old DEPLOY_TIMESTAMP if present
+    const filteredEnv = existingEnv.filter(e => e.name !== 'DEPLOY_TIMESTAMP');
+    
+    // Add new DEPLOY_TIMESTAMP
+    filteredEnv.push({ name: 'DEPLOY_TIMESTAMP', value: new Date().toISOString() });
+
+    console.log('Updating service with merged environment variables...');
     await runRegional.namespaces.services.replaceService({
       name: `namespaces/${projectId}/services/${serviceName}`,
       requestBody: {
@@ -118,7 +132,7 @@ async function deploy() {
             spec: {
               containers: [{ 
                 image: `gcr.io/${projectId}/${serviceName}`,
-                env: [{ name: 'DEPLOY_TIMESTAMP', value: new Date().toISOString() }]
+                env: filteredEnv
               }],
             },
           },
