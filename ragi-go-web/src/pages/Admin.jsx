@@ -435,7 +435,7 @@ export default function Admin() {
                   {/* Management Section */}
                   <div style={{ background: '#f5f5f7', padding: '12px', borderRadius: '12px', marginTop: '16px' }}>
                     <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', flexShrink: 0, width: '80px' }}>STATUS:</label>
+                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', flexShrink: 0, width: '100px' }}>STATUS:</label>
                       <select
                         value={order.status}
                         onChange={(e) => updateStatus(order.id, e.target.value)}
@@ -466,7 +466,7 @@ export default function Admin() {
 
                     {/* Assign Delivery Guy */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', flexShrink: 0, width: '80px' }}>ASSIGN TO:</label>
+                      <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', flexShrink: 0, width: '100px' }}>ASSIGN TO:</label>
                       <select
                         value={order.assignedTo || ''}
                         onChange={(e) => assignOrder(order.id, e.target.value)}
