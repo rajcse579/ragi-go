@@ -39,6 +39,9 @@ public class AuthController {
     @Autowired
     private com.example.ragi_go_api.service.EmailService emailService;
 
+    @Autowired
+    private com.example.ragi_go_api.service.FcmService fcmService;
+
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody User user) {
         if (userRepo.existsById(user.getEmail())) {
@@ -113,6 +116,7 @@ public class AuthController {
         }
         if (user.getFcmToken() != null) {
             existingUser.setFcmToken(user.getFcmToken());
+            fcmService.subscribeToTopic(user.getFcmToken(), "broadcasts");
         }
         
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {

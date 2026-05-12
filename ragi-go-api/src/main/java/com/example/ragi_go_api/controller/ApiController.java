@@ -57,6 +57,24 @@ public class ApiController {
         return ResponseEntity.ok(java.util.Map.of("isOpen", isOpen));
     }
 
+    // --- BROADCASTS ---
+    @PostMapping("/broadcast")
+    public ResponseEntity<String> sendBroadcast(@RequestBody java.util.Map<String, String> payload) {
+        String title = payload.get("title");
+        String body = payload.get("body");
+        
+        if (title == null || title.isEmpty() || body == null || body.isEmpty()) {
+            return ResponseEntity.badRequest().body("Title and body are required");
+        }
+        
+        try {
+            fcmService.sendTopicNotification("broadcasts", title, body);
+            return ResponseEntity.ok("Broadcast sent successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error sending broadcast: " + e.getMessage());
+        }
+    }
+
     // --- MENU ITEMS ---
     @GetMapping("/menu")
     public List<MenuItem> getMenu() {

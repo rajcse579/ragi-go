@@ -52,4 +52,15 @@ public class FcmService {
             e.printStackTrace();
         }
     }
+
+    public void subscribeToTopic(String token, String topic) {
+        if (token == null || token.isEmpty()) return;
+        try {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic(
+                    java.util.Collections.singletonList(token), topic);
+            System.out.println("Subscribed token to topic: " + topic);
+        } catch (Exception e) {
+            System.err.println("Error subscribing to topic: " + e.getMessage());
+        }
+    }
 }

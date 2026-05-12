@@ -158,6 +158,16 @@ export default function Admin() {
         type: 'promotional'
       });
 
+      // Also send push notification via backend
+      try {
+        await axios.post(`${API_BASE_URL}/broadcast`, {
+          title: promoForm.title,
+          body: promoForm.body
+        });
+      } catch (err) {
+        console.error("Failed to send push notification broadcast", err);
+      }
+
       setPromoForm({ title: '', body: '' });
       setPromoSuccess(true);
       setTimeout(() => setPromoSuccess(false), 4000);
