@@ -1,5 +1,6 @@
 package com.example.ragi_go_api.service;
 
+import com.google.firebase.messaging.AndroidConfig;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
@@ -19,9 +20,14 @@ public class FcmService {
                 .setBody(body)
                 .build();
 
+        AndroidConfig androidConfig = AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .build();
+
         Message message = Message.builder()
                 .setToken(token)
                 .setNotification(notification)
+                .setAndroidConfig(androidConfig)
                 .build();
 
         try {
@@ -39,9 +45,14 @@ public class FcmService {
                 .setBody(body)
                 .build();
 
+        AndroidConfig androidConfig = AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .build();
+
         Message message = Message.builder()
                 .setTopic(topic)
                 .setNotification(notification)
+                .setAndroidConfig(androidConfig)
                 .build();
 
         try {
