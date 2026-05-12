@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import com.example.ragi_go_api.service.FcmService;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -31,6 +32,9 @@ public class ApiController {
 
     @Autowired
     private com.example.ragi_go_api.repository.UserRepository userRepo;
+
+    @Autowired
+    private FcmService fcmService;
 
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
@@ -112,6 +116,18 @@ public class ApiController {
         // Send Telegram notification to admin
         telegramService.sendOrderNotification(savedOrder);
         
+        // Notify Admins via FCM
+        try {
+            java.util.List<com.example.ragi_go_api.model.User> admins = userRepo.findByRole("ADMIN");
+            for (com.example.ragi_go_api.model.User admin : admins) {
+                if (admin.getFcmToken() != null && !admin.getFcmToken().isEmpty()) {
+                    fcmService.sendPushNotification(admin.getFcmToken(), "New Order Received! 🔔", "You have received a new order #" + (savedOrder.getId() != null ? savedOrder.getId().substring(Math.max(0, savedOrder.getId().length() - 5)) : "N/A"));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error sending FCM notification to admins: " + e.getMessage());
+        }
+        
         // Notify SSE subscribers
         notifyOrderUpdate(savedOrder);
         
@@ -123,8 +139,39 @@ public class ApiController {
         AppOrder order = orderRepo.findById(id);
         if (order == null) return ResponseEntity.notFound().build();
         
-        order.setStatus(payload.get("status"));
+        String status = payload.get("status");
+        order.setStatus(status);
         AppOrder savedOrder = orderRepo.save(order);
+        
+        // Notify User via FCM
+        try {
+            com.example.ragi_go_api.model.User user = userRepo.findByPhone(order.getPhone());
+            if (user != null && user.getFcmToken() != null && !user.getFcmToken().isEmpty()) {
+                String title = "";
+                String body = "";
+                String orderShortId = (order.getId() != null ? order.getId().substring(Math.max(0, order.getId().length() - 5)) : "N/A");
+                
+                if ("Accepted".equals(status)) {
+                    title = "Order Accepted! 🍳";
+                    body = "Great news! The restaurant has accepted your order #" + orderShortId + " and is preparing it now.";
+                } else if ("Out for Delivery".equals(status)) {
+                    title = "Order Out for Delivery! 🚴";
+                    body = "Your order #" + orderShortId + " is on the way to your location.";
+                } else if ("Delivered".equals(status)) {
+                    title = "Order Delivered! 🎉";
+                    body = "Your order #" + orderShortId + " has been successfully delivered. Enjoy your meal!";
+                } else if ("Cancelled".equals(status)) {
+                    title = "Order Cancelled ❌";
+                    body = "Sorry for the inconvenience, your order #" + orderShortId + " has been cancelled by the restaurant.";
+                }
+                
+                if (!title.isEmpty()) {
+                    fcmService.sendPushNotification(user.getFcmToken(), title, body);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error sending FCM notification to user: " + e.getMessage());
+        }
         
         // Notify SSE subscribers
         notifyOrderUpdate(savedOrder);
@@ -137,8 +184,19 @@ public class ApiController {
         AppOrder order = orderRepo.findById(id);
         if (order == null) return ResponseEntity.notFound().build();
         
-        order.setAssignedTo(payload.get("assignedTo"));
+        String assignedTo = payload.get("assignedTo");
+        order.setAssignedTo(assignedTo);
         AppOrder savedOrder = orderRepo.save(order);
+        
+        // Notify Delivery Guy via FCM
+        try {
+            com.example.ragi_go_api.model.User deliveryGuy = userRepo.findByPhone(assignedTo);
+            if (deliveryGuy != null && deliveryGuy.getFcmToken() != null && !deliveryGuy.getFcmToken().isEmpty()) {
+                fcmService.sendPushNotification(deliveryGuy.getFcmToken(), "New Order Assigned! 📦", "Order #" + (order.getId() != null ? order.getId().substring(Math.max(0, order.getId().length() - 5)) : "N/A") + " has been assigned to you.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error sending FCM notification to delivery guy: " + e.getMessage());
+        }
         
         // Notify SSE subscribers
         notifyOrderUpdate(savedOrder);

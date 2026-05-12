@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { PushNotifications } from '@capacitor/push-notifications';
 import { useNotifications } from '../context/NotificationContext';
+import axios from 'axios';
+import API_BASE_URL from '../apiConfig';
 
 export default function OrderNotification() {
   const { addNotification } = useNotifications();
@@ -22,7 +25,60 @@ export default function OrderNotification() {
       visibility: 1,
       vibration: true
     }).catch(err => console.error("Error creating notification channel", err));
+
+    // --- Push Notifications Setup ---
+    PushNotifications.requestPermissions().then(result => {
+      if (result.receive === 'granted') {
+        PushNotifications.register();
+      }
+    }).catch(err => console.warn("PushNotifications requestPermissions failed", err));
+
+    PushNotifications.addListener('registration', (token) => {
+      console.log('Push registration success, token: ' + token.value);
+      localStorage.setItem('fcmToken', token.value);
+      saveTokenToBackend(token.value);
+    });
+
+    PushNotifications.addListener('registrationError', (error) => {
+      console.error('Error on push registration: ' + JSON.stringify(error));
+    });
+
+    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      console.log('Push received: ' + JSON.stringify(notification));
+    });
+
+    PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+      console.log('Push action performed: ' + JSON.stringify(notification));
+    });
+
   }, []);
+
+  const saveTokenToBackend = (token) => {
+    const userEmail = localStorage.getItem('userEmail');
+    const userName = localStorage.getItem('userName');
+    const userPhone = localStorage.getItem('userPhone');
+    
+    if (userEmail && token) {
+      axios.put(`${API_BASE_URL}/auth/profile`, {
+        email: userEmail,
+        name: userName,
+        phone: userPhone,
+        fcmToken: token
+      }).then(() => {
+        console.log('FCM Token saved to backend successfully');
+      }).catch(err => {
+        console.error('Failed to save FCM Token to backend', err);
+      });
+    }
+  };
+
+  // Auto-save token when user logs in
+  useEffect(() => {
+    const token = localStorage.getItem('fcmToken');
+    if (userPhone && token) {
+      saveTokenToBackend(token);
+    }
+  }, [userPhone]);
 
   // 2. Poll localStorage to detect login/logout
   useEffect(() => {

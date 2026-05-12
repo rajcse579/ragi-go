@@ -7,7 +7,7 @@ import API_BASE_URL from '../apiConfig';
 import '../Sprite.css';
 
 export default function Cart() {
-  const { cart, addToCart, removeFromCart, cartTotal, cartCount } = useCart();
+  const { cart, addToCart, removeFromCart, cartTotal, cartCount, decreaseQuantity } = useCart();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
 
@@ -144,7 +144,7 @@ export default function Cart() {
                         gap: '10px',
                         background: '#fff'
                       }}>
-                        <button style={{ border: 'none', background: 'none', color: '#bebfc5', fontSize: '18px', cursor: 'pointer', padding: '0 4px' }} onClick={() => removeFromCart(item.id)}>-</button>
+                        <button style={{ border: 'none', background: 'none', color: '#bebfc5', fontSize: '18px', cursor: 'pointer', padding: '0 4px' }} onClick={() => decreaseQuantity(item.id)}>-</button>
                         <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--secondary)', minWidth: '12px', textAlign: 'center' }}>{item.quantity}</span>
                         <button style={{ border: 'none', background: 'none', color: 'var(--secondary)', fontSize: '18px', cursor: 'pointer', padding: '0 4px' }} onClick={() => addToCart(item)}>+</button>
                       </div>

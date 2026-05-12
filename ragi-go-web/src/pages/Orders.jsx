@@ -184,7 +184,9 @@ export default function Orders() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '11px', color: getStatusColor(order.status), fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>{order.status}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>ID #{order.id.slice(-5)}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>
+                    ID #{order.id.slice(-5)} • {order.timestamp ? new Date(order.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }) : 'N/A'}
+                  </div>
                 </div>
               </div>
 

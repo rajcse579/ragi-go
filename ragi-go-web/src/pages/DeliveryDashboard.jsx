@@ -120,7 +120,9 @@ export default function DeliveryDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #f1f1f6' }}>
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 800 }}>Order #{order.id.slice(-5)}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>{order.name} • {order.phone}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-light)' }}>
+                    {order.name} • {order.phone} • {order.timestamp ? new Date(order.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }) : 'N/A'}
+                  </div>
                 </div>
                 <div style={{ fontSize: '12px', fontWeight: 800 }}>₹{order.total}</div>
               </div>

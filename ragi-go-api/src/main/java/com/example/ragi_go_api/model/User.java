@@ -15,4 +15,5 @@ public class User {
     private String role; // "USER" or "ADMIN"
     private String address;
     private String gpsLocation;
+    private String fcmToken;
 }

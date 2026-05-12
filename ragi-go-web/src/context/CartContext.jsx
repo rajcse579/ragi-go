@@ -36,13 +36,28 @@ export const CartProvider = ({ children }) => {
     setCart((prev) => prev.filter(i => i.id !== itemId));
   };
 
+  const decreaseQuantity = (itemId) => {
+    hapticImpactLight();
+    setCart((prev) => {
+      const existing = prev.find(i => i.id === itemId);
+      if (existing) {
+        if (existing.quantity > 1) {
+          return prev.map(i => i.id === itemId ? { ...i, quantity: i.quantity - 1 } : i);
+        } else {
+          return prev.filter(i => i.id !== itemId);
+        }
+      }
+      return prev;
+    });
+  };
+
   const clearCart = () => setCart([]);
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, cartTotal, cartCount }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, cartTotal, cartCount, decreaseQuantity }}>
       {children}
     </CartContext.Provider>
   );

@@ -111,6 +111,9 @@ public class AuthController {
         if (user.getGpsLocation() != null) {
             existingUser.setGpsLocation(user.getGpsLocation());
         }
+        if (user.getFcmToken() != null) {
+            existingUser.setFcmToken(user.getFcmToken());
+        }
         
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -125,6 +128,7 @@ public class AuthController {
         response.put("role", savedUser.getRole());
         response.put("address", savedUser.getAddress());
         response.put("gpsLocation", savedUser.getGpsLocation());
+        response.put("fcmToken", savedUser.getFcmToken());
         return ResponseEntity.ok(response);
     }
 
