@@ -21,6 +21,7 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Signup = lazy(() => import('./pages/Signup'));
 const Payment = lazy(() => import('./pages/Payment'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const About = lazy(() => import('./pages/About'));
 
 
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -85,6 +86,7 @@ function App() {
                   : <Signup />
               } />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/about" element={<About />} />
 
               <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
               <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />

@@ -112,6 +112,11 @@ export default function Login() {
         <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px' }}>
           Don't have an account? <Link to="/signup" style={{ color: 'var(--primary)', fontWeight: 700 }}>Sign Up</Link>
         </p>
+        <div style={{ textAlign: 'center', marginTop: '25px' }}>
+          <Link to="/about" style={{ color: 'var(--text-light)', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+            <i className='bx bx-info-circle'></i> Learn more about Raagi GO
+          </Link>
+        </div>
       </div>
 
       {/* Footer / Terms */}
