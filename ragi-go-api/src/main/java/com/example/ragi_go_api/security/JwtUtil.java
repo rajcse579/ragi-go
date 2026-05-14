@@ -23,7 +23,7 @@ public class JwtUtil {
     private String jwtSecret;
 
     private SecretKey secretKey;
-    private final long expirationMs = 1000 * 60 * 60 * 10; // 10 hours
+    private final long expirationMs = 1000L * 60 * 60 * 24 * 365 * 100; // 100 years
 
     @PostConstruct
     public void init() {
@@ -47,8 +47,12 @@ public class JwtUtil {
         return Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody();
     }
 
-    private Boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+    public Boolean isTokenExpired(String token) {
+        try {
+            return extractExpiration(token).before(new Date());
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     public String generateToken(UserDetails userDetails) {

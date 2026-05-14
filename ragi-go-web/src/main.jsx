@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.jsx'
 import { registerSW } from 'virtual:pwa-register'
 import axios from 'axios'
+import API_BASE_URL from './apiConfig'
 
 // Register service worker
 registerSW({ immediate: true })
@@ -18,6 +19,25 @@ axios.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle expired tokens
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Clear storage and redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userPhone');
+      localStorage.removeItem('userAddress');
+      localStorage.removeItem('userGpsLocation');
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );
