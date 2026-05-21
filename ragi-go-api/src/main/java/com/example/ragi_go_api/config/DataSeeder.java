@@ -15,28 +15,27 @@ public class DataSeeder {
     @Bean
     CommandLineRunner initDatabase(MenuItemRepository repository) {
         return args -> {
-            // Reset and seed database with correct prices and availability
-            System.out.println("Clearing and re-seeding Firestore menu items...");
             List<MenuItem> existingItems = repository.findAll();
-            for (MenuItem item : existingItems) {
-                repository.deleteById(item.getId());
-            }
+            if (existingItems.isEmpty()) {
+                System.out.println("Firestore menu items collection is empty. Seeding defaults...");
+                MenuItem m1 = new MenuItem(null, "Ragi Java", 20.0, "https://images.unsplash.com/photo-1596450514735-2d002f0434b4?auto=format&fit=crop&w=400&h=400", true);
+                MenuItem m2 = new MenuItem(null, "Molakettina Pesalu", 35.0, "https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?auto=format&fit=crop&w=400&h=400", true);
+                MenuItem m3 = new MenuItem(null, "Kommu Senagalu", 40.0, "https://images.unsplash.com/photo-1585438058914-3d7f0ba33ec2?auto=format&fit=crop&w=400&h=400", true);
+                MenuItem m4 = new MenuItem(null, "Sweet Corn", 30.0, "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&w=400&h=400", true);
+                MenuItem m5 = new MenuItem(null, "Carrot", 30.0, "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=400&h=400", true);
+                MenuItem m6 = new MenuItem(null, "Beet Root", 30.0, "https://images.unsplash.com/photo-1528137850689-d51b51130bc4?auto=format&fit=crop&w=400&h=400", true);
+                MenuItem m7 = new MenuItem(null, "Pachhi Verusenagalu", 50.0, "https://images.unsplash.com/photo-1534442220468-24b4f8551676?auto=format&fit=crop&w=400&h=400", true);
+                MenuItem m8 = new MenuItem(null, "Fruit Salad", 50.0, "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&h=400", true);
+                MenuItem m9 = new MenuItem(null, "Healthy Breakfast Bowl", 80.0, "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=400&h=400", true);
 
-            MenuItem m1 = new MenuItem(null, "Ragi Java", 20.0, "https://images.unsplash.com/photo-1596450514735-2d002f0434b4?auto=format&fit=crop&w=400&h=400", true);
-            MenuItem m2 = new MenuItem(null, "Molakettina Pesalu", 35.0, "https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?auto=format&fit=crop&w=400&h=400", true);
-            MenuItem m3 = new MenuItem(null, "Kommu Senagalu", 40.0, "https://images.unsplash.com/photo-1585438058914-3d7f0ba33ec2?auto=format&fit=crop&w=400&h=400", true);
-            MenuItem m4 = new MenuItem(null, "Sweet Corn", 30.0, "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&w=400&h=400", true);
-            MenuItem m5 = new MenuItem(null, "Carrot", 30.0, "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=400&h=400", true);
-            MenuItem m6 = new MenuItem(null, "Beet Root", 30.0, "https://images.unsplash.com/photo-1528137850689-d51b51130bc4?auto=format&fit=crop&w=400&h=400", true);
-            MenuItem m7 = new MenuItem(null, "Pachhi Verusenagalu", 50.0, "https://images.unsplash.com/photo-1534442220468-24b4f8551676?auto=format&fit=crop&w=400&h=400", true);
-            MenuItem m8 = new MenuItem(null, "Fruit Salad", 50.0, "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&h=400", true);
-            MenuItem m9 = new MenuItem(null, "Healthy Breakfast Bowl", 80.0, "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=400&h=400", true);
-
-            List<MenuItem> itemsToSave = Arrays.asList(m1, m2, m3, m4, m5, m6, m7, m8, m9);
-            for (MenuItem item : itemsToSave) {
-                repository.save(item);
+                List<MenuItem> itemsToSave = Arrays.asList(m1, m2, m3, m4, m5, m6, m7, m8, m9);
+                for (MenuItem item : itemsToSave) {
+                    repository.save(item);
+                }
+                System.out.println("Database seeding complete.");
+            } else {
+                System.out.println("Firestore menu items already exist. Skipping seeding.");
             }
-            System.out.println("Database seeding complete.");
         };
     }
 }
