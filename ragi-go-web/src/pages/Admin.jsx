@@ -18,6 +18,9 @@ export default function Admin() {
   const [editingItem, setEditingItem] = useState(null); // null for new, {id, name, ...} for edit
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', price: '', imageUrl: '', available: true });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [promoForm, setPromoForm] = useState({ title: '', body: '' });
   const [isSendingPromo, setIsSendingPromo] = useState(false);
   const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
@@ -104,16 +107,56 @@ export default function Admin() {
       .catch(err => console.error("Error fetching delivery guys", err));
   };
 
-  const handleMenuSubmit = (e) => {
+  const handleMenuSubmit = async (e) => {
     e.preventDefault();
-    const action = editingItem ? axios.put(`${API_BASE_URL}/menu/${editingItem.id}`, formData) : axios.post(`${API_BASE_URL}/menu`, formData);
+
+    let currentImageUrl = formData.imageUrl;
+
+    if (imageFile) {
+      setIsSaving(true);
+      const toastId = toast.loading('Uploading image...');
+      try {
+        const uploadData = new FormData();
+        uploadData.append('file', imageFile);
+
+        const response = await axios.post(`${API_BASE_URL}/upload`, uploadData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        currentImageUrl = response.data.url;
+        toast.success('Image uploaded successfully!', { id: toastId });
+      } catch (err) {
+        console.error("Error uploading image:", err);
+        toast.error('Failed to upload image', { id: toastId });
+        setIsSaving(false);
+        return;
+      }
+    }
+
+    if (!currentImageUrl) {
+      toast.error('Please upload an image for the menu item');
+      return;
+    }
+
+    setIsSaving(true);
+    const payload = { ...formData, imageUrl: currentImageUrl };
+    const action = editingItem ? axios.put(`${API_BASE_URL}/menu/${editingItem.id}`, payload) : axios.post(`${API_BASE_URL}/menu`, payload);
 
     action.then(() => {
       fetchMenu();
       setShowMenuModal(false);
       setEditingItem(null);
       setFormData({ name: '', price: '', imageUrl: '', available: true });
-    }).catch(err => toast.error('Failed to save menu item'));
+      setImageFile(null);
+      setImagePreview(null);
+    }).catch(err => {
+      console.error(err);
+      toast.error('Failed to save menu item');
+    }).finally(() => {
+      setIsSaving(false);
+    });
   };
 
   const deleteMenuItem = (id) => {
@@ -129,9 +172,19 @@ export default function Admin() {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
   const openEditModal = (item) => {
     setEditingItem(item);
     setFormData({ name: item.name, price: item.price, imageUrl: item.imageUrl, available: item.available });
+    setImageFile(null);
+    setImagePreview(item.imageUrl);
     setShowMenuModal(true);
   };
 
@@ -518,7 +571,7 @@ export default function Admin() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, fontSize: '16px' }}>Manage Menu</h3>
               <button
-                onClick={() => { setEditingItem(null); setFormData({ name: '', price: '', imageUrl: '', available: true }); setShowMenuModal(true); }}
+                onClick={() => { setEditingItem(null); setFormData({ name: '', price: '', imageUrl: '', available: true }); setImageFile(null); setImagePreview(null); setShowMenuModal(true); }}
                 style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 800 }}
               >+ ADD ITEM</button>
             </div>
@@ -693,7 +746,7 @@ export default function Admin() {
               <div className="input-group" style={{ marginBottom: '15px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', marginBottom: '5px', display: 'block' }}>NAME</label>
                 <input
-                  type="text" value={formData.name} required
+                  type="text" value={formData.name} required disabled={isSaving}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   className="input-field" style={{ width: '100%' }}
                 />
@@ -701,32 +754,52 @@ export default function Admin() {
               <div className="input-group" style={{ marginBottom: '15px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', marginBottom: '5px', display: 'block' }}>PRICE (₹)</label>
                 <input
-                  type="number" value={formData.price} required
+                  type="number" value={formData.price} required disabled={isSaving}
                   onChange={e => setFormData({ ...formData, price: e.target.value })}
                   className="input-field" style={{ width: '100%' }}
                 />
               </div>
               <div className="input-group" style={{ marginBottom: '15px' }}>
-                <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', marginBottom: '5px', display: 'block' }}>IMAGE URL</label>
+                <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-light)', marginBottom: '5px', display: 'block' }}>IMAGE</label>
+                {imagePreview ? (
+                  <div style={{ position: 'relative', width: '100%', height: '150px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e9e9eb', marginBottom: '10px' }}>
+                    <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <label htmlFor="menu-image-upload" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: 0, transition: 'opacity 0.2s', fontWeight: 600, gap: '5px' }} className="upload-overlay">
+                      <i className='bx bx-camera' style={{ fontSize: '24px' }}></i>
+                      <span>Change Image</span>
+                    </label>
+                    <style>{`
+                      .upload-overlay:hover { opacity: 1 !important; }
+                    `}</style>
+                  </div>
+                ) : (
+                  <label htmlFor="menu-image-upload" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '150px', border: '2px dashed #ccd0d5', borderRadius: '12px', cursor: 'pointer', background: '#fafafa', gap: '8px', color: 'var(--text-light)', marginBottom: '10px' }}>
+                    <i className='bx bx-cloud-upload' style={{ fontSize: '32px', color: 'var(--primary)' }}></i>
+                    <span style={{ fontSize: '13px', fontWeight: 600 }}>Click to upload image</span>
+                    <span style={{ fontSize: '10px' }}>PNG, JPG or WEBP</span>
+                  </label>
+                )}
                 <input
-                  type="text" value={formData.imageUrl} required
-                  onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
-                  className="input-field" style={{ width: '100%' }}
+                  id="menu-image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  disabled={isSaving}
+                  style={{ display: 'none' }}
                 />
-                <p style={{ fontSize: '10px', color: 'var(--text-light)', marginTop: '4px' }}>
-                  <i className='bx bx-info-circle'></i> Tip: Use <b>.webp</b> for 3x faster loading.
-                </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
                 <input
-                  type="checkbox" checked={!formData.available}
+                  type="checkbox" checked={!formData.available} disabled={isSaving}
                   onChange={e => setFormData({ ...formData, available: !e.target.checked })}
                 />
-                <label style={{ fontSize: '13px', fontWeight: 600 }}>Out of Stock</label>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: isSaving ? 'var(--text-light)' : 'inherit' }}>Out of Stock</label>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={() => setShowMenuModal(false)} style={{ flex: 1, background: '#f1f1f6', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800 }}>CANCEL</button>
-                <button type="submit" style={{ flex: 2, background: 'var(--primary)', color: '#fff', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800 }}>SAVE ITEM</button>
+                <button type="button" disabled={isSaving} onClick={() => setShowMenuModal(false)} style={{ flex: 1, background: '#f1f1f6', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800, opacity: isSaving ? 0.6 : 1, cursor: isSaving ? 'not-allowed' : 'pointer' }}>CANCEL</button>
+                <button type="submit" disabled={isSaving} style={{ flex: 2, background: 'var(--primary)', color: '#fff', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 800, opacity: isSaving ? 0.6 : 1, cursor: isSaving ? 'not-allowed' : 'pointer' }}>
+                  {isSaving ? 'SAVING...' : 'SAVE ITEM'}
+                </button>
               </div>
             </form>
           </div>

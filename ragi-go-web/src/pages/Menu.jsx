@@ -10,7 +10,7 @@ import '../Sprite.css';
 export default function Menu() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { addToCart, cartCount } = useCart();
+  const { cart, addToCart, decreaseQuantity, cartCount } = useCart();
   const { unreadCount } = useNotifications();
   const [cartAnimation, setCartAnimation] = useState(false);
   const [logoTaps, setLogoTaps] = useState(0);
@@ -191,7 +191,7 @@ export default function Menu() {
       <div className="hero-section">
         <div className="hero-content">
           <h1>Millet Magic 🌿</h1>
-          <p>Healthy, tasty, and <span>guilt-free</span> millet snacks & tiffins.</p>
+          <p>Healthy, tasty, and <span>guilt-free</span> millet snacks & drinks.</p>
         </div>
       </div>
 
@@ -237,7 +237,7 @@ export default function Menu() {
           />
         </div>
         <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }} className="no-scrollbar">
-          {["All", "Millet", "Tiffin", "Drinks"].map((cat) => (
+          {["All", "Millet", "Snacks", "Drinks"].map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
@@ -281,10 +281,19 @@ export default function Menu() {
         ) : (
           items.filter(item => {
             const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const nameLower = item.name.toLowerCase();
             const matchesCategory = selectedCategory === 'All' ||
-              (selectedCategory === 'Millet' && item.name.toLowerCase().includes('millet')) ||
-              (selectedCategory === 'Tiffin' && (item.name.toLowerCase().includes('idli') || item.name.toLowerCase().includes('dosa'))) ||
-              (selectedCategory === 'Drinks' && (item.name.toLowerCase().includes('drink') || item.name.toLowerCase().includes('juice')));
+              (selectedCategory === 'Millet' && (
+                // All items in our menu are traditional millet-based
+                true
+              )) ||
+              (selectedCategory === 'Snacks' && (
+                // Everything except Ragi Java / drinks
+                !nameLower.includes('java') && !nameLower.includes('drink') && !nameLower.includes('juice') && !nameLower.includes('tea') && !nameLower.includes('coffee')
+              )) ||
+              (selectedCategory === 'Drinks' && (
+                nameLower.includes('java') || nameLower.includes('drink') || nameLower.includes('juice') || nameLower.includes('tea') || nameLower.includes('coffee')
+              ));
 
             return matchesSearch && matchesCategory;
           }).map((item, index) => (
@@ -337,10 +346,32 @@ export default function Menu() {
                 </div>
                 <div className="add-btn-container" style={{ pointerEvents: 'none' }}>
                   {isShopOpen && item.available ? (
-                    <button className="add-btn" onClick={(e) => { e.stopPropagation(); addToCart(item); }} style={{ pointerEvents: 'auto' }}>
-                      ADD
-                      <span style={{ position: 'absolute', top: '-5px', right: '-5px', color: 'var(--secondary)', fontWeight: 800 }}>+</span>
-                    </button>
+                    (() => {
+                      const cartItem = cart.find(c => c.id === item.id);
+                      if (cartItem) {
+                        return (
+                          <div className="qty-control" style={{ 
+                            pointerEvents: 'auto', 
+                            boxShadow: 'var(--shadow-md)', 
+                            height: '36px', 
+                            padding: '4px 6px', 
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border)',
+                            background: '#fff'
+                          }}>
+                            <button className="qty-btn" onClick={(e) => { e.stopPropagation(); decreaseQuantity(item.id); }}>-</button>
+                            <span className="qty-val">{cartItem.quantity}</span>
+                            <button className="qty-btn" onClick={(e) => { e.stopPropagation(); addToCart(item); }}>+</button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <button className="add-btn" onClick={(e) => { e.stopPropagation(); addToCart(item); }} style={{ pointerEvents: 'auto' }}>
+                          ADD
+                          <span style={{ position: 'absolute', top: '-5px', right: '-5px', color: 'var(--secondary)', fontWeight: 800 }}>+</span>
+                        </button>
+                      );
+                    })()
                   ) : (
                     <button className="add-btn" disabled style={{ background: '#fff', color: '#bebfc5', border: '1px solid #bebfc5', cursor: 'not-allowed', boxShadow: 'none' }}>
                       {!isShopOpen ? 'CLOSED' : 'ADD'}

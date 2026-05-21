@@ -10,6 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.example.ragi_go_api.service.FcmService;
+import org.springframework.web.multipart.MultipartFile;
+import com.google.firebase.cloud.StorageClient;
+import com.google.cloud.storage.Bucket;
+import com.google.cloud.storage.Blob;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -236,6 +240,38 @@ public class ApiController {
     @GetMapping("/delivery-guys")
     public List<com.example.ragi_go_api.model.User> getDeliveryGuys() {
         return userRepo.findByRole("DELIVERY");
+    }
+
+    // --- FILE UPLOAD ---
+    @PostMapping("/upload")
+    public ResponseEntity<java.util.Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "File is empty or not provided"));
+        }
+        try {
+            String originalFileName = file.getOriginalFilename();
+            String fileExt = "";
+            if (originalFileName != null && originalFileName.contains(".")) {
+                fileExt = originalFileName.substring(originalFileName.lastIndexOf("."));
+            }
+            String fileName = "menu_" + System.currentTimeMillis() + fileExt;
+            
+            Bucket bucket = StorageClient.getInstance().bucket("ragi-go-media");
+            if (bucket == null) {
+                return ResponseEntity.status(500).body(java.util.Map.of("error", "Could not access storage bucket ragi-go-media"));
+            }
+            
+            // Upload the file content to Google Cloud Storage
+            Blob blob = bucket.create("menu/" + fileName, file.getBytes(), file.getContentType());
+            
+            // Construct the public URL
+            String publicUrl = String.format("https://storage.googleapis.com/%s/%s", bucket.getName(), blob.getName());
+            
+            return ResponseEntity.ok(java.util.Map.of("url", publicUrl));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(java.util.Map.of("error", "Failed to upload file: " + e.getMessage()));
+        }
     }
 
     private void notifyOrderUpdate(AppOrder order) {

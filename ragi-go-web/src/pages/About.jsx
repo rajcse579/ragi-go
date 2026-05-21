@@ -45,7 +45,7 @@ export default function About() {
             Raagi GO is a modern wellness initiative dedicated to bringing ancient nutritional wisdom back to your daily diet. Born in the heart of <strong>Amadalavalasa</strong>, we believe that the secret to a productive day starts with a healthy, traditional meal.
           </p>
           <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, fontSize: '15px', marginTop: '15px' }}>
-            We specialize in <strong>100% millet-based tiffins</strong>, prepared using traditional recipes that have been passed down through generations, now delivered directly to your doorstep.
+            We specialize in <strong>100% millet-based healthy food & drinks</strong>, prepared using traditional recipes that have been passed down through generations, now delivered directly to your doorstep.
           </p>
         </div>
 
@@ -135,7 +135,7 @@ export default function About() {
           <div style={{ fontSize: '14px', color: '#666', display: 'flex', justifyContent: 'center', gap: '20px' }}>
              <a href="/privacy.html" style={{ color: 'inherit', textDecoration: 'none' }}>Privacy Policy</a>
              <span>•</span>
-             <span>v1.12.0</span>
+             <span>v1.14.0</span>
           </div>
         </div>
       </div>
