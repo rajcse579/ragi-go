@@ -7,6 +7,59 @@ import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS = ["Pending", "Accepted", "Out for Delivery", "Delivered", "Cancelled"];
 
+const compressImage = (file, maxWidth = 800, maxHeight = 800, quality = 0.8) => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(compressedFile);
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
 export default function Admin() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -172,11 +225,25 @@ export default function Admin() {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      const toastId = toast.loading('Optimizing image...');
+      try {
+        const compressed = await compressImage(file, 800, 800, 0.8);
+        const originalSizeKB = (file.size / 1024).toFixed(1);
+        const compressedSizeKB = (compressed.size / 1024).toFixed(1);
+        
+        toast.success(`Optimized: ${originalSizeKB} KB → ${compressedSizeKB} KB`, { id: toastId });
+        
+        setImageFile(compressed);
+        setImagePreview(URL.createObjectURL(compressed));
+      } catch (err) {
+        console.error("Compression error:", err);
+        toast.error("Failed to optimize image, uploading original instead", { id: toastId });
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+      }
     }
   };
 
@@ -776,7 +843,7 @@ export default function Admin() {
                   <label htmlFor="menu-image-upload" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '150px', border: '2px dashed #ccd0d5', borderRadius: '12px', cursor: 'pointer', background: '#fafafa', gap: '8px', color: 'var(--text-light)', marginBottom: '10px' }}>
                     <i className='bx bx-cloud-upload' style={{ fontSize: '32px', color: 'var(--primary)' }}></i>
                     <span style={{ fontSize: '13px', fontWeight: 600 }}>Click to upload image</span>
-                    <span style={{ fontSize: '10px' }}>PNG, JPG or WEBP</span>
+                    <span style={{ fontSize: '10px' }}>PNG, JPG or WEBP (Auto-optimized)</span>
                   </label>
                 )}
                 <input
