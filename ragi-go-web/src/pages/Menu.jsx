@@ -191,7 +191,7 @@ export default function Menu() {
       <div className="hero-section">
         <div className="hero-content">
           <h1>Millet Magic 🌿</h1>
-          <p>Healthy, tasty, and <span>guilt-free</span> breakfast.</p>
+          <p>Healthy, tasty, and <span>guilt-free</span> millet snacks & tiffins.</p>
         </div>
       </div>
 

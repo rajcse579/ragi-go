@@ -21,7 +21,7 @@ export default function About() {
         <div className="fade-in" style={{ position: 'relative', height: '250px', overflow: 'hidden' }}>
           <img 
             src={ragiHero} 
-            alt="Ragi Breakfast" 
+            alt="Ragi Wellness Foods" 
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
           <div style={{ 
@@ -42,7 +42,7 @@ export default function About() {
         <div style={{ padding: '30px 20px' }} className="fade-in-up">
           <h2 style={{ color: 'var(--primary)', fontSize: '22px', fontWeight: 800, marginBottom: '15px' }}>What is Raagi GO?</h2>
           <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, fontSize: '15px' }}>
-            Raagi GO is a modern wellness initiative dedicated to bringing ancient nutritional wisdom back to your breakfast table. Born in the heart of <strong>Amadalavalasa</strong>, we believe that the secret to a productive day starts with a healthy, traditional meal.
+            Raagi GO is a modern wellness initiative dedicated to bringing ancient nutritional wisdom back to your daily diet. Born in the heart of <strong>Amadalavalasa</strong>, we believe that the secret to a productive day starts with a healthy, traditional meal.
           </p>
           <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, fontSize: '15px', marginTop: '15px' }}>
             We specialize in <strong>100% millet-based tiffins</strong>, prepared using traditional recipes that have been passed down through generations, now delivered directly to your doorstep.
@@ -130,7 +130,7 @@ export default function About() {
             style={{ width: '100%', marginBottom: '20px' }}
             onClick={() => navigate('/menu')}
           >
-            ORDER YOUR MILLET BREAKFAST
+            ORDER YOUR MILLET FOODS
           </button>
           <div style={{ fontSize: '14px', color: '#666', display: 'flex', justifyContent: 'center', gap: '20px' }}>
              <a href="/privacy.html" style={{ color: 'inherit', textDecoration: 'none' }}>Privacy Policy</a>

@@ -12,7 +12,7 @@ export default defineConfig({
       manifest: {
         name: 'Raagi GO',
         short_name: 'RaagiGO',
-        description: 'Healthy, tasty, and guilt-free millet breakfast.',
+        description: 'Healthy, tasty, and guilt-free millet foods.',
         theme_color: '#FC8019',
         background_color: '#ffffff',
         display: 'standalone',
